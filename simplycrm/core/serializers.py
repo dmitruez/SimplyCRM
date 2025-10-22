@@ -99,3 +99,9 @@ class AuthTokenSerializer(serializers.Serializer):
         if not attrs["username"] or not attrs["password"]:
             raise serializers.ValidationError("Both username and password are required.")
         return attrs
+
+
+class EmptySerializer(serializers.Serializer):
+    """Placeholder serializer for endpoints that do not accept payloads."""
+
+    pass
