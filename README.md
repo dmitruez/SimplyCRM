@@ -68,6 +68,12 @@ Each app exposes REST endpoints registered under `/api/` via DRF routers. Featur
 
 - HTTPS hardening flags (HSTS, secure cookies, referrer policy) are enabled automatically when `DJANGO_DEBUG=0`. Override `DJANGO_SECURE_*` variables for production deployments behind load balancers.
 
+### Registration & Social Login
+
+- Self-service signups are available at `POST /api/auth/register/`. Provide an `email`, `password`, and optional `first_name`, `last_name`, or `organization_name`. A dedicated workspace is created automatically with the Free subscription tier.
+- Google sign-in is enabled via `POST /api/auth/google/` accepting a `token` (Google ID token) and optional `organization_name`. Existing accounts are linked by email while new users receive a fresh workspace.
+- Configure accepted Google audiences through the `GOOGLE_OAUTH_CLIENT_IDS` (comma-separated) or `GOOGLE_OAUTH_CLIENT_ID` environment variables. Tokens issued for other client IDs are rejected. Only verified Google emails may authenticate.
+
 ## Subscription Plans & Feature Codes
 
 Feature flags determine which endpoints are available per subscription tier. Example feature codes include:
@@ -82,6 +88,12 @@ Feature flags determine which endpoints are available per subscription tier. Exa
 - `integrations.api_keys` – manage API keys.
 
 Populate `SubscriptionPlan` and `FeatureFlag` models via the admin or fixtures to tailor plan capabilities.
+
+## Admin Interface
+
+- SimplyCRM ships with the [Django Jet Reboot](https://github.com/geex-arts/django-jet-reboot) control panel for a modern management experience.
+- Access the Jet dashboards at `/jet/` and `/jet/dashboard/`. The classic Django admin remains available at `/admin/` for compatibility.
+- Customize the Jet theme via the `DJANGO_JET_DEFAULT_THEME` environment variable. Additional color presets are available out-of-the-box.
 
 ## Background Tasks & Integrations
 

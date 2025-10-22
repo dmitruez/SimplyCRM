@@ -8,7 +8,14 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 
 from simplycrm.core.security import LoginAttemptTracker
-from simplycrm.core.serializers import AuthTokenSerializer, EmptySerializer
+from simplycrm.core.serializers import (
+    AuthTokenSerializer,
+    EmptySerializer,
+    GoogleAuthSerializer,
+    OrganizationSerializer,
+    RegistrationSerializer,
+    UserSerializer,
+)
 from simplycrm.core.throttling import LoginRateThrottle
 
 
@@ -66,3 +73,57 @@ class RevokeAuthTokenView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):  # type: ignore[override]
         Token.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RegisterUserView(generics.GenericAPIView):
+    """API endpoint to register a new SimplyCRM workspace user."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = RegistrationSerializer
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request, *args, **kwargs):  # type: ignore[override]
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        token, _ = Token.objects.get_or_create(user=user)
+        workspace = serializer.workspace
+        context = self.get_serializer_context()
+
+        return Response(
+            {
+                "token": token.key,
+                "user": UserSerializer(user, context=context).data,
+                "organization": OrganizationSerializer(workspace.organization, context=context).data,
+                "is_new_user": workspace.created,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class GoogleAuthView(generics.GenericAPIView):
+    """Exchange a Google ID token for a SimplyCRM session."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = GoogleAuthSerializer
+    throttle_classes = [LoginRateThrottle]
+
+    def post(self, request, *args, **kwargs):  # type: ignore[override]
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        token, _ = Token.objects.get_or_create(user=user)
+        workspace = serializer.workspace
+        context = self.get_serializer_context()
+
+        return Response(
+            {
+                "token": token.key,
+                "user": UserSerializer(user, context=context).data,
+                "organization": OrganizationSerializer(workspace.organization, context=context).data,
+                "is_new_user": workspace.created,
+            },
+            status=status.HTTP_201_CREATED if workspace.created else status.HTTP_200_OK,
+        )

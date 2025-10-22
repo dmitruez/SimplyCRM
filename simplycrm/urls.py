@@ -10,7 +10,12 @@ from simplycrm.analytics.urls import router as analytics_router
 from simplycrm.automation.urls import router as automation_router
 from simplycrm.catalog.urls import router as catalog_router
 from simplycrm.core.urls import router as core_router
-from simplycrm.core.views import ObtainAuthTokenView, RevokeAuthTokenView
+from simplycrm.core.views import (
+    GoogleAuthView,
+    ObtainAuthTokenView,
+    RegisterUserView,
+    RevokeAuthTokenView,
+)
 from simplycrm.assistant.urls import router as assistant_router
 from simplycrm.analytics.views import AnalyticsDashboardView
 from simplycrm.integrations.urls import router as integrations_router
@@ -30,11 +35,15 @@ for sub_router in (
         router.register(prefix, viewset, basename=basename)
 
 urlpatterns = [
+    path("jet/", include("jet.urls", "jet")),
+    path("jet/dashboard/", include("jet.dashboard.urls", "jet-dashboard")),
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("api/auth/", include("rest_framework.urls")),
     path("api/auth/token/", ObtainAuthTokenView.as_view(), name="auth-token"),
     path("api/auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
+    path("api/auth/register/", RegisterUserView.as_view(), name="auth-register"),
+    path("api/auth/google/", GoogleAuthView.as_view(), name="auth-google"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",
