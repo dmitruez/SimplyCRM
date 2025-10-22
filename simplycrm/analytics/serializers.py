@@ -1,0 +1,97 @@
+"""Serializers for analytics models."""
+from __future__ import annotations
+
+from rest_framework import serializers
+
+from simplycrm.analytics import models
+
+
+class MetricDefinitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.MetricDefinition
+        fields = ["id", "organization", "code", "name", "description", "query", "is_active"]
+        read_only_fields = ["id"]
+
+
+class DashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Dashboard
+        fields = ["id", "organization", "name", "layout", "filters"]
+        read_only_fields = ["id"]
+
+
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Report
+        fields = ["id", "organization", "name", "definition", "schedule_cron", "last_run_at", "last_run_status"]
+        read_only_fields = ["id", "last_run_at", "last_run_status"]
+
+
+class InsightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Insight
+        fields = ["id", "organization", "title", "description", "severity", "data", "detected_at"]
+        read_only_fields = ["id", "detected_at"]
+
+
+class ForecastSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Forecast
+        fields = [
+            "id",
+            "organization",
+            "name",
+            "target",
+            "horizon_days",
+            "configuration",
+            "result",
+            "generated_at",
+        ]
+        read_only_fields = ["id", "generated_at"]
+
+
+class CustomerSegmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.CustomerSegment
+        fields = [
+            "id",
+            "organization",
+            "name",
+            "description",
+            "filter_definition",
+            "size",
+            "ltv",
+            "churn_rate",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "updated_at"]
+
+
+class ModelTrainingRunSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ModelTrainingRun
+        fields = [
+            "id",
+            "organization",
+            "model_type",
+            "status",
+            "parameters",
+            "metrics",
+            "started_at",
+            "completed_at",
+        ]
+        read_only_fields = ["id", "started_at", "completed_at"]
+
+
+class DataSourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.DataSource
+        fields = ["id", "organization", "name", "source_type", "config", "is_active"]
+        read_only_fields = ["id"]
+
+
+class DataSyncLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.DataSyncLog
+        fields = ["id", "data_source", "status", "started_at", "completed_at", "stats"]
+        read_only_fields = ["id", "started_at"]

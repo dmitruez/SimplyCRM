@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+from django.conf import settings
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ("core", "0001_initial"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="AutomationRule",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True)),
+                ("trigger", models.CharField(max_length=128)),
+                ("conditions", models.JSONField(blank=True, default=dict)),
+                ("actions", models.JSONField(blank=True, default=list)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
+                ),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="automation_rules", to="core.organization"),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="Campaign",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True)),
+                ("status", models.CharField(default="draft", max_length=32)),
+                ("audience_definition", models.JSONField(blank=True, default=dict)),
+                ("start_at", models.DateTimeField(blank=True, null=True)),
+                ("end_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
+                ),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="campaigns", to="core.organization"),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="CampaignStep",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("step_type", models.CharField(max_length=64)),
+                ("position", models.PositiveIntegerField(default=0)),
+                ("payload", models.JSONField(blank=True, default=dict)),
+                ("delay_minutes", models.PositiveIntegerField(default=0)),
+                (
+                    "campaign",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="steps", to="automation.campaign"),
+                ),
+            ],
+            options={"ordering": ["position"]},
+        ),
+        migrations.CreateModel(
+            name="Notification",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("channel", models.CharField(max_length=32)),
+                ("template", models.CharField(max_length=128)),
+                ("payload", models.JSONField(blank=True, default=dict)),
+                ("scheduled_at", models.DateTimeField(blank=True, null=True)),
+                ("sent_at", models.DateTimeField(blank=True, null=True)),
+                ("status", models.CharField(default="pending", max_length=32)),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="notifications", to="core.organization"),
+                ),
+                (
+                    "recipient",
+                    models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="WebhookEvent",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("url", models.URLField()),
+                ("event_type", models.CharField(max_length=64)),
+                ("headers", models.JSONField(blank=True, default=dict)),
+                ("payload", models.JSONField(blank=True, default=dict)),
+                ("status", models.CharField(default="pending", max_length=32)),
+                ("last_response_code", models.IntegerField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("delivered_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="webhook_events", to="core.organization"),
+                ),
+            ],
+        ),
+    ]
