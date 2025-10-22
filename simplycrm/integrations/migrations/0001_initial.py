@@ -1,0 +1,89 @@
+from __future__ import annotations
+
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ("core", "0001_initial"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="ApiKey",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=255)),
+                ("key", models.CharField(max_length=128, unique=True)),
+                ("permissions", models.JSONField(blank=True, default=list)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("last_used_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="api_keys", to="core.organization"),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="WebhookSubscription",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("url", models.URLField()),
+                ("event_types", models.JSONField(blank=True, default=list)),
+                ("secret", models.CharField(blank=True, max_length=128)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="webhook_subscriptions", to="core.organization"),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="IntegrationConnection",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("provider", models.CharField(max_length=64)),
+                ("config", models.JSONField(blank=True, default=dict)),
+                ("status", models.CharField(default="disconnected", max_length=32)),
+                ("last_synced_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="integration_connections", to="core.organization"),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="IntegrationLog",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("level", models.CharField(max_length=32)),
+                ("message", models.TextField()),
+                ("payload", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "connection",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="logs", to="integrations.integrationconnection"),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name="ImportJob",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("data_source", models.CharField(max_length=128)),
+                ("status", models.CharField(default="pending", max_length=32)),
+                ("started_at", models.DateTimeField(auto_now_add=True)),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                ("statistics", models.JSONField(blank=True, default=dict)),
+                (
+                    "organization",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="import_jobs", to="core.organization"),
+                ),
+            ],
+        ),
+    ]
