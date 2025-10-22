@@ -1,0 +1,35 @@
+.container {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  display: grid;
+  gap: var(--space-sm);
+  z-index: 9999;
+}
+
+.notification {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-xs);
+  border: 1px solid var(--color-border);
+  max-width: 320px;
+}
+
+.info {
+  border-color: rgba(14, 95, 216, 0.2);
+}
+
+.success {
+  border-color: rgba(82, 227, 194, 0.3);
+}
+
+.warning {
+  border-color: rgba(234, 179, 8, 0.2);
+}
+
+.error {
+  border-color: rgba(239, 68, 68, 0.2);
+}
