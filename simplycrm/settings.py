@@ -23,12 +23,14 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "django_filters",
+    "drf_spectacular",
     "simplycrm.core",
     "simplycrm.catalog",
     "simplycrm.sales",
     "simplycrm.analytics",
     "simplycrm.automation",
     "simplycrm.integrations",
+    "simplycrm.assistant",
 ]
 
 MIDDLEWARE = [
@@ -104,11 +106,29 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "simplycrm.core.throttling.LoginRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": os.getenv("DJANGO_REST_ANON_RATE", "30/min"),
+        "user": os.getenv("DJANGO_REST_USER_RATE", "120/min"),
+        "login": os.getenv("DJANGO_REST_LOGIN_RATE", "10/min"),
+    },
 }
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SimplyCRM API",
+    "DESCRIPTION": "Comprehensive API documentation for the SimplyCRM backend.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
@@ -122,6 +142,25 @@ CACHES = {
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+LOGIN_SECURITY = {
+    "MAX_ATTEMPTS": int(os.getenv("DJANGO_LOGIN_MAX_ATTEMPTS", "5")),
+    "ATTEMPT_WINDOW_SECONDS": int(os.getenv("DJANGO_LOGIN_ATTEMPT_WINDOW", "900")),
+    "LOCKOUT_SECONDS": int(os.getenv("DJANGO_LOGIN_LOCKOUT_SECONDS", "900")),
+}
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "0") == "1"
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "0" if DEBUG else "31536000"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", "1") == "1"
+SECURE_HSTS_PRELOAD = os.getenv("DJANGO_SECURE_HSTS_PRELOAD", "0") == "1"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
 
 LOGGING = {
     "version": 1,

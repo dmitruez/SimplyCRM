@@ -1,9 +1,11 @@
-"""Router for core viewsets."""
+"""Router and endpoints for core services."""
 from __future__ import annotations
 
+from django.urls import path
 from rest_framework import routers
 
 from simplycrm.core import viewsets
+from simplycrm.core.views import ObtainAuthTokenView, RevokeAuthTokenView
 
 router = routers.DefaultRouter()
 router.register(r"organizations", viewsets.OrganizationViewSet)
@@ -13,3 +15,9 @@ router.register(r"subscriptions", viewsets.SubscriptionViewSet)
 router.register(r"users", viewsets.UserViewSet)
 router.register(r"user-roles", viewsets.UserRoleViewSet)
 router.register(r"audit-logs", viewsets.AuditLogViewSet, basename="audit-log")
+
+urlpatterns = [
+    *router.urls,
+    path("auth/token/", ObtainAuthTokenView.as_view(), name="auth-token"),
+    path("auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
+]

@@ -85,3 +85,18 @@ class InsightAnalyticsViewSet(viewsets.ViewSet):
     def anomalies(self, request):
         anomalies = services.detect_sales_anomalies(request.user.organization_id)
         return response.Response(anomalies, status=status.HTTP_200_OK)
+
+    @decorators.action(detail=False, methods=["get"], url_path="price-recommendations")
+    def price_recommendations(self, request):
+        recommendations = services.recommend_price_actions(request.user.organization_id)
+        return response.Response(recommendations)
+
+    @decorators.action(detail=False, methods=["get"], url_path="demand-forecast")
+    def demand_forecast(self, request):
+        forecast = services.forecast_product_demand(request.user.organization_id)
+        return response.Response(forecast)
+
+    @decorators.action(detail=False, methods=["get"], url_path="next-best-actions")
+    def next_best_actions(self, request):
+        actions = services.suggest_next_best_actions(request.user.organization_id)
+        return response.Response(actions)

@@ -86,3 +86,16 @@ class AuditLogSerializer(serializers.ModelSerializer):
         model = models.AuditLog
         fields = ["id", "organization", "user", "action", "entity", "metadata", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+
+class AuthTokenSerializer(serializers.Serializer):
+    """Validate credentials for token-based authentication."""
+
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate(self, attrs):  # type: ignore[override]
+        attrs["username"] = attrs["username"].strip()
+        if not attrs["username"] or not attrs["password"]:
+            raise serializers.ValidationError("Both username and password are required.")
+        return attrs

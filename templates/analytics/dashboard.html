@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SimplyCRM Intelligence Hub</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top, #0f172a, #020617 55%);
+        color: #e2e8f0;
+      }
+
+      body {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      header {
+        padding: 2.5rem clamp(1rem, 5vw, 4rem) 1.5rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        letter-spacing: -0.02em;
+      }
+
+      .subtitle {
+        margin-top: 0.75rem;
+        max-width: 60ch;
+        line-height: 1.6;
+        color: rgba(226, 232, 240, 0.78);
+      }
+
+      main {
+        flex: 1;
+        padding: 0 clamp(1rem, 5vw, 4rem) 4rem;
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .card-grid {
+        display: grid;
+        gap: 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+
+      .card {
+        position: relative;
+        padding: 1.75rem;
+        border-radius: 1.25rem;
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 64, 175, 0.35));
+        backdrop-filter: blur(12px);
+        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+      }
+
+      .card h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+      }
+
+      .metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.65rem;
+      }
+
+      .metric span {
+        font-variant-numeric: tabular-nums;
+      }
+
+      footer {
+        padding: 2rem clamp(1rem, 5vw, 4rem);
+        text-align: center;
+        color: rgba(148, 163, 184, 0.8);
+        font-size: 0.9rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(79, 70, 229, 0.28);
+        color: #c7d2fe;
+        font-size: 0.85rem;
+        margin-right: 0.35rem;
+        margin-bottom: 0.35rem;
+      }
+
+      @media (max-width: 768px) {
+        main {
+          padding-bottom: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>SimplyCRM Intelligence Hub</h1>
+      <p class="subtitle">
+        Привет, {{ username }}! Здесь собраны ключевые показатели и рекомендации для организации
+        <strong>{{ organization.name }}</strong>. Используйте панель чтобы принимать решения быстрее — данные обновляются мгновенно через API SimplyCRM и ассистента GPT.
+      </p>
+    </header>
+    <main>
+      <section class="card">
+        <h2>Активные возможности</h2>
+        <div>
+          {% for feature in feature_codes %}
+          <span class="pill">{{ feature }}</span>
+          {% empty %}
+          <p>Для организации пока не подключены расширенные функции.</p>
+          {% endfor %}
+        </div>
+      </section>
+      <section class="card-grid">
+        <article class="card">
+          <h2>AI ассистент</h2>
+          <p>
+            Задайте вопрос SimplyGPT через REST эндпоинт <code>/api/ai/conversations/&lt;id&gt;/ask/</code> — он использует свежие метрики, чтобы предложить действия и определить, какие товары стоит продвигать.
+          </p>
+        </article>
+        <article class="card">
+          <h2>Глубокая аналитика</h2>
+          <p>
+            Новые эндпоинты <code>/api/insight-analytics/price-recommendations/</code>,
+            <code>/api/insight-analytics/demand-forecast/</code> и
+            <code>/api/insight-analytics/next-best-actions/</code> дают прогноз спроса, советы по цене и следующее лучшее действие для менеджеров.
+          </p>
+        </article>
+        <article class="card">
+          <h2>Документация</h2>
+          <p>
+            Полное описание API доступно в Swagger UI: <code>/api/docs/</code>. Модели данных и расширения ассистента описаны в README проекта.
+          </p>
+        </article>
+      </section>
+    </main>
+    <footer>SimplyCRM © {% now "Y" %}. Оснащено защитой и аналитикой уровня Enterprise.</footer>
+  </body>
+</html>
