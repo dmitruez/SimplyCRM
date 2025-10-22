@@ -1,0 +1,33 @@
+.wrapper {
+  max-width: 420px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.inputGroup {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 1rem;
+}
+
+.helpText {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
