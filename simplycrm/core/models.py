@@ -5,7 +5,7 @@ from datetime import date
 from typing import Iterable
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -88,6 +88,60 @@ class Subscription(models.Model):
         return self.started_at <= day
 
 
+class OrganizationAwareUserManager(UserManager):
+    """Ensure users are always tied to an organization.
+
+    ``createsuperuser`` now provisions a default tenant when one is not
+    supplied so bootstrap setups do not fail with ``Organization.DoesNotExist``.
+    """
+
+    def _normalize_organization(self, organization: Organization | int | None) -> Organization:
+        if organization is None:
+            raise ValueError("Users must be associated with an organization.")
+        if isinstance(organization, int):
+            return Organization.objects.get(pk=organization)
+        return organization
+
+    def create_user(self, username, email=None, password=None, **extra_fields):  # type: ignore[override]
+        organization = self._normalize_organization(extra_fields.pop("organization", None))
+        user = self.model(
+            username=username,
+            email=self.normalize_email(email),
+            organization=organization,
+            **extra_fields,
+        )
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):  # type: ignore[override]
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
+        organization = extra_fields.pop("organization", None)
+        if organization is None:
+            organization, _ = Organization.objects.get_or_create(
+                slug="global-admin",
+                defaults={"name": "Global Admin"},
+            )
+        else:
+            organization = self._normalize_organization(organization)
+
+        return super().create_superuser(
+            username,
+            email=email,
+            password=password,
+            organization=organization,
+            **extra_fields,
+        )
+
+
 class User(AbstractUser):
     """Custom user bound to an organization."""
 
@@ -96,7 +150,9 @@ class User(AbstractUser):
     timezone = models.CharField(max_length=64, default="UTC")
     locale = models.CharField(max_length=16, default="en-US")
 
-    REQUIRED_FIELDS: Iterable[str] = ["email", "organization"]
+    REQUIRED_FIELDS: Iterable[str] = ["email"]
+
+    objects = OrganizationAwareUserManager()
 
     def feature_codes(self) -> set[str]:
         active_subscription = self.organization.subscriptions.filter(is_active=True).order_by("-started_at").first()
