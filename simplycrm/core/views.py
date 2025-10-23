@@ -10,6 +10,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from simplycrm.core.security import LoginAttemptTracker
 from simplycrm.core.serializers import (

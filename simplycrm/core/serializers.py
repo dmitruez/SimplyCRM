@@ -4,11 +4,6 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model, password_validation
 from rest_framework import serializers
 
-from simplycrm.core.services import (
-    WorkspaceDetails,
-    provision_google_account,
-    provision_local_account,
-)
 
 from simplycrm.core import models
 from simplycrm.core.services import provision_local_account
