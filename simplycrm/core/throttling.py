@@ -12,9 +12,8 @@ class LoginRateThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):  # type: ignore[override]
         ident = self.get_ident(request)
         username = request.data.get("username") if request.method == "POST" else None
-        if username:
-            return self.cache_format % {"scope": self.scope, "ident": f"{username}:{ident}"}
-        return super().get_cache_key(request, view)
+        cache_ident = f"{username}:{ident}" if username else ident
+        return self.cache_format % {"scope": self.scope, "ident": cache_ident}
 
 
 class RegistrationRateThrottle(SimpleRateThrottle):

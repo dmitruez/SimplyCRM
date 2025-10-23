@@ -46,8 +46,40 @@ export const setAccessToken = (token: string | null) => {
   inMemoryToken = token;
 };
 
+const resolveApiBaseUrl = (): string => {
+  const fallback = '/api';
+  const raw = env.apiBaseUrl?.trim();
+
+  if (!raw) {
+    return fallback;
+  }
+
+  if (raw.startsWith('/')) {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw);
+    if (typeof window !== 'undefined') {
+      const currentOrigin = window.location.origin;
+      if (url.origin !== currentOrigin && !env.apiAllowCrossOrigin) {
+        console.warn(
+          `VITE_API_BASE_URL origin (${url.origin}) doesn't match current origin (${currentOrigin}). ` +
+            `Falling back to ${fallback} to avoid CSRF trusted origins issues. ` +
+            'Set VITE_API_ALLOW_CROSS_ORIGIN=1 to force the provided base URL.'
+        );
+        return fallback;
+      }
+    }
+    return url.toString();
+  } catch (error) {
+    console.warn(`Invalid VITE_API_BASE_URL value "${raw}". Falling back to ${fallback}.`, error);
+    return fallback;
+  }
+};
+
 export const apiClient = axios.create({
-  baseURL: env.apiBaseUrl || '/api',
+  baseURL: resolveApiBaseUrl(),
   withCredentials: true,
   timeout: 10_000
 });
