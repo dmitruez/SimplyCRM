@@ -17,6 +17,7 @@ from simplycrm.core.serializers import (
     GoogleAuthSerializer,
     RegistrationSerializer,
     UserProfileSerializer,
+    EmptySerializer
 )
 from simplycrm.core.services import provision_google_account
 from simplycrm.core.throttling import LoginRateThrottle, RegistrationRateThrottle

@@ -30,12 +30,20 @@ export const AppShell = ({ children }: AppShellProps) => {
           <NavLink to="/" className={navLinkClassName}>
             Главная
           </NavLink>
+          <NavLink to="/products" className={navLinkClassName}>
+            Каталог
+          </NavLink>
           <NavLink to="/pricing" className={navLinkClassName}>
             Тарифы
           </NavLink>
           {isAuthenticated ? (
             <NavLink to="/crm" className={navLinkClassName}>
               CRM
+            </NavLink>
+          ) : null}
+          {isAuthenticated ? (
+            <NavLink to="/account" className={navLinkClassName}>
+              Аккаунт
             </NavLink>
           ) : null}
           {isAuthenticated ? (
