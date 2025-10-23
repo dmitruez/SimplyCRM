@@ -11,7 +11,13 @@ from simplycrm.core.services import (
 )
 
 from simplycrm.core import models
-from simplycrm.core.services import provision_tenant_account
+from simplycrm.core.services import provision_local_account
+
+
+class EmptySerializer(serializers.Serializer):
+    """Serializer that represents an empty payload."""
+
+    pass
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -54,6 +60,14 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         model = models.Subscription
         fields = ["id", "organization", "plan", "plan_id", "started_at", "expires_at", "is_active"]
         read_only_fields = ["id", "organization"]
+
+
+class WorkspaceDetails(serializers.Serializer):
+    """Aggregate workspace information for authenticated clients."""
+
+    organization = OrganizationSerializer()
+    subscription = SubscriptionSerializer(allow_null=True)
+    feature_flags = FeatureFlagSerializer(many=True)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -166,7 +180,7 @@ class RegistrationSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):  # type: ignore[override]
-        result = provision_tenant_account(
+        result = provision_local_account(
             username=validated_data["username"],
             email=validated_data["email"],
             password=validated_data["password"],

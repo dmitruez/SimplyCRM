@@ -86,3 +86,51 @@ def provision_tenant_account(
         )
 
     return ProvisioningResult(user=user, organization=organization, subscription=subscription)
+
+
+def provision_local_account(
+    *,
+    username: str,
+    email: str,
+    password: str,
+    organization_name: str,
+    first_name: str = "",
+    last_name: str = "",
+    plan_key: str | None = None,
+    start_date: date | None = None,
+) -> ProvisioningResult:
+    """Backwards compatible wrapper for local tenant provisioning."""
+
+    return provision_tenant_account(
+        username=username,
+        email=email,
+        password=password,
+        organization_name=organization_name,
+        first_name=first_name,
+        last_name=last_name,
+        plan_key=plan_key,
+        start_date=start_date,
+    )
+
+
+def provision_google_account(
+    *,
+    email: str,
+    organization_name: str,
+    first_name: str = "",
+    last_name: str = "",
+    plan_key: str | None = None,
+    start_date: date | None = None,
+) -> ProvisioningResult:
+    """Provision a tenant for a Google authenticated user without a password."""
+
+    return provision_tenant_account(
+        username=email,
+        email=email,
+        password=None,
+        organization_name=organization_name,
+        first_name=first_name,
+        last_name=last_name,
+        plan_key=plan_key,
+        start_date=start_date,
+    )
