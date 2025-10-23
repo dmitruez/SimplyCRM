@@ -1,0 +1,64 @@
+.wrapper {
+  max-width: 420px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.twoColumns {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.inputGroup {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 1rem;
+}
+
+.select {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 1rem;
+  background: var(--color-surface);
+}
+
+.helpText {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}

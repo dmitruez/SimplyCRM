@@ -35,6 +35,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "simplycrm.core.middleware.DDoSShieldMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -116,6 +117,7 @@ REST_FRAMEWORK = {
         "anon": os.getenv("DJANGO_REST_ANON_RATE", "30/min"),
         "user": os.getenv("DJANGO_REST_USER_RATE", "120/min"),
         "login": os.getenv("DJANGO_REST_LOGIN_RATE", "10/min"),
+        "registration": os.getenv("DJANGO_REST_REGISTRATION_RATE", "5/hour"),
     },
 }
 
@@ -147,6 +149,28 @@ LOGIN_SECURITY = {
     "MAX_ATTEMPTS": int(os.getenv("DJANGO_LOGIN_MAX_ATTEMPTS", "5")),
     "ATTEMPT_WINDOW_SECONDS": int(os.getenv("DJANGO_LOGIN_ATTEMPT_WINDOW", "900")),
     "LOCKOUT_SECONDS": int(os.getenv("DJANGO_LOGIN_LOCKOUT_SECONDS", "900")),
+}
+
+GOOGLE_OAUTH = {
+    "CLIENT_ID": os.getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
+    "ALLOWED_DOMAINS": [
+        domain.strip()
+        for domain in os.getenv("GOOGLE_OAUTH_ALLOWED_DOMAINS", "").split(",")
+        if domain.strip()
+    ],
+}
+
+DDOS_SHIELD = {
+    "WINDOW_SECONDS": int(os.getenv("DDOS_SHIELD_WINDOW_SECONDS", "10")),
+    "BURST_LIMIT": int(os.getenv("DDOS_SHIELD_BURST_LIMIT", "60")),
+    "PENALTY_SECONDS": int(os.getenv("DDOS_SHIELD_PENALTY_SECONDS", "60")),
+    "SIGNATURE_TTL_SECONDS": int(os.getenv("DDOS_SHIELD_SIGNATURE_TTL", "15")),
+    "PROTECTED_PATH_PREFIXES": [
+        prefix.strip()
+        for prefix in os.getenv("DDOS_SHIELD_PATH_PREFIXES", "/api/").split(",")
+        if prefix.strip()
+    ]
+    or ["/api/"],
 }
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
