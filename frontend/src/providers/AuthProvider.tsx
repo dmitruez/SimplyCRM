@@ -12,7 +12,13 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { authApi } from '../api/auth';
 import { setAccessToken } from '../api/apiClient';
-import { AuthContextValue, AuthState, FeatureFlag } from '../types/auth';
+import {
+  AuthContextValue,
+  AuthState,
+  FeatureFlag,
+  RegistrationFormValues,
+  UserProfile
+} from '../types/auth';
 import { notificationBus } from '../components/notifications/notificationBus';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -34,13 +40,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setState((prev) => ({ ...prev, ...partial }));
   }, []);
 
+  const applyAuthResult = useCallback(
+    (payload: { access: string; profile: UserProfile }) => {
+      setAuthState({
+        status: 'authenticated',
+        accessToken: payload.access,
+        profile: payload.profile
+      });
+      queryClient.setQueryData(FEATURE_FLAG_CACHE_KEY, payload.profile.featureFlags);
+    },
+    [queryClient]
+  );
+
   const fetchProfile = useCallback(async () => {
-    setAuthState({ status: 'loading' });
+    setAuthState((prev) => ({ ...prev, status: 'loading' }));
     try {
       const profile = await authApi.getProfile();
       if (!isMounted.current) return;
 
-      setAuthState({ profile, status: 'authenticated' });
+      setAuthState((prev) => ({
+        ...prev,
+        profile,
+        status: 'authenticated'
+      }));
       queryClient.setQueryData(FEATURE_FLAG_CACHE_KEY, profile.featureFlags);
     } catch (error: any) {
       if (error?.response?.status === 401) {
@@ -66,12 +88,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback<AuthContextValue['login']>(
     async (payload) => {
-      setAuthState({ status: 'loading' });
-      const token = await authApi.login(payload);
-      setAuthState({ accessToken: token });
-      await fetchProfile();
+      setAuthState((prev) => ({ ...prev, status: 'loading' }));
+      const result = await authApi.login(payload);
+      applyAuthResult({ access: result.access, profile: result.profile });
     },
-    [fetchProfile, setAuthState]
+    [applyAuthResult]
+  );
+
+  const loginWithGoogle = useCallback<AuthContextValue['loginWithGoogle']>(
+    async (payload) => {
+      setAuthState((prev) => ({ ...prev, status: 'loading' }));
+      const result = await authApi.loginWithGoogle(payload);
+      applyAuthResult({ access: result.access, profile: result.profile });
+    },
+    [applyAuthResult]
+  );
+
+  const register = useCallback(
+    async (payload: RegistrationFormValues) => {
+      setAuthState((prev) => ({ ...prev, status: 'loading' }));
+      const result = await authApi.register(payload);
+      applyAuthResult({ access: result.access, profile: result.profile });
+    },
+    [applyAuthResult]
   );
 
   const logout = useCallback<AuthContextValue['logout']>(async () => {
@@ -100,11 +139,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       ...state,
       login,
+      loginWithGoogle,
+      register,
       logout,
       refreshProfile,
       isFeatureEnabled
     }),
-    [isFeatureEnabled, login, logout, refreshProfile, state]
+    [isFeatureEnabled, login, loginWithGoogle, logout, refreshProfile, register, state]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -13,7 +13,8 @@ from simplycrm.core.urls import router as core_router
 from simplycrm.core.views import (
     GoogleAuthView,
     ObtainAuthTokenView,
-    RegisterUserView,
+    ProfileView,
+    RegisterView,
     RevokeAuthTokenView,
 )
 from simplycrm.assistant.urls import router as assistant_router
@@ -42,7 +43,8 @@ urlpatterns = [
     path("api/auth/", include("rest_framework.urls")),
     path("api/auth/token/", ObtainAuthTokenView.as_view(), name="auth-token"),
     path("api/auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
-    path("api/auth/register/", RegisterUserView.as_view(), name="auth-register"),
+    path("api/auth/profile/", ProfileView.as_view(), name="auth-profile"),
+    path("api/auth/register/", RegisterView.as_view(), name="auth-register"),
     path("api/auth/google/", GoogleAuthView.as_view(), name="auth-google"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
