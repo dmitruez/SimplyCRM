@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 
 import { PricingCard } from '../components/ui/PricingCard';
 import { pricingApi } from '../api/pricing';
@@ -63,6 +64,7 @@ const fallbackPlans: PricingPlan[] = [
 ];
 
 export const PricingPage = () => {
+  const navigate = useNavigate();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const { data, isLoading } = useQuery({
     queryKey: ['pricing', 'plans'],
@@ -131,8 +133,7 @@ export const PricingPage = () => {
             ctaLabel={plan.pricePerMonth === 0 ? 'Начать бесплатно' : 'Попробовать'}
             highlighted={plan.name === 'Growth'}
             onCtaClick={() => {
-              // eslint-disable-next-line no-alert
-              window.alert('Интеграция с платежным провайдером будет подключена через backend.');
+              navigate(`/checkout?plan=${plan.key}&cycle=${billing === 'yearly' ? 'annual' : 'monthly'}`);
             }}
           />
         ))}
