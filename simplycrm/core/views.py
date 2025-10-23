@@ -18,7 +18,7 @@ from simplycrm.core.serializers import (
     RegistrationSerializer,
     UserProfileSerializer,
 )
-from simplycrm.core.services import provision_tenant_account
+from simplycrm.core.services import provision_google_account
 from simplycrm.core.throttling import LoginRateThrottle, RegistrationRateThrottle
 
 
@@ -162,13 +162,11 @@ class GoogleAuthView(APIView):
                 organization_name = f"{id_info.get('name') or email.split('@')[0]}'s Workspace"
 
             plan_key = serializer.validated_data.get("plan_key") or None
-            result = provision_tenant_account(
-                username=email,
+            result = provision_google_account(
                 email=email,
                 organization_name=organization_name,
                 first_name=id_info.get("given_name", ""),
                 last_name=id_info.get("family_name", ""),
-                password=None,
                 plan_key=plan_key,
             )
             user = result.user
