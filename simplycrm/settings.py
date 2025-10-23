@@ -14,6 +14,8 @@ ALLOWED_HOSTS: list[str] = [
 ] or ["*"]
 
 INSTALLED_APPS = [
+    "jet",
+    "jet.dashboard",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -199,3 +201,15 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+GOOGLE_OAUTH_CLIENT_IDS = [
+    client.strip()
+    for client in os.getenv("GOOGLE_OAUTH_CLIENT_IDS", os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")).split(",")
+    if client.strip()
+]
+
+JET_DEFAULT_THEME = os.getenv("DJANGO_JET_DEFAULT_THEME", "default")
+JET_THEMES = [
+    {"theme": "default", "color": "#1d6ee3", "title": "SimplyCRM"},
+    {"theme": "light-blue", "color": "#3592e2", "title": "Light Blue"},
+]

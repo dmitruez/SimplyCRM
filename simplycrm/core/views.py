@@ -6,11 +6,10 @@ import importlib
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.utils.translation import gettext_lazy as _
-from rest_framework import permissions, status
+from rest_framework import generics, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from simplycrm.core.security import LoginAttemptTracker
 from simplycrm.core.serializers import (
@@ -23,14 +22,15 @@ from simplycrm.core.services import provision_google_account
 from simplycrm.core.throttling import LoginRateThrottle, RegistrationRateThrottle
 
 
-class ObtainAuthTokenView(APIView):
+class ObtainAuthTokenView(generics.GenericAPIView):
     """Issue DRF tokens with brute-force protection."""
 
     permission_classes = [permissions.AllowAny]
     throttle_classes = [LoginRateThrottle]
+    serializer_class = AuthTokenSerializer
 
     def post(self, request, *args, **kwargs):  # type: ignore[override]
-        serializer = AuthTokenSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data["username"]
         password = serializer.validated_data["password"]
@@ -73,10 +73,11 @@ class ObtainAuthTokenView(APIView):
         return {"access": token.key, "token_type": "Token", "profile": profile}
 
 
-class RevokeAuthTokenView(APIView):
+class RevokeAuthTokenView(generics.GenericAPIView):
     """Allow authenticated users to revoke their active token."""
 
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmptySerializer
 
     def post(self, request, *args, **kwargs):  # type: ignore[override]
         Token.objects.filter(user=request.user).delete()

@@ -36,6 +36,8 @@ for sub_router in (
         router.register(prefix, viewset, basename=basename)
 
 urlpatterns = [
+    path("jet/", include("jet.urls", "jet")),
+    path("jet/dashboard/", include("jet.dashboard.urls", "jet-dashboard")),
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("api/auth/", include("rest_framework.urls")),
