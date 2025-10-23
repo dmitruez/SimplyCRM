@@ -5,7 +5,13 @@ from django.urls import path
 from rest_framework import routers
 
 from simplycrm.core import viewsets
-from simplycrm.core.views import ObtainAuthTokenView, RevokeAuthTokenView
+from simplycrm.core.views import (
+    GoogleAuthView,
+    ObtainAuthTokenView,
+    ProfileView,
+    RegisterView,
+    RevokeAuthTokenView,
+)
 
 router = routers.DefaultRouter()
 router.register(r"organizations", viewsets.OrganizationViewSet)
@@ -20,4 +26,7 @@ urlpatterns = [
     *router.urls,
     path("auth/token/", ObtainAuthTokenView.as_view(), name="auth-token"),
     path("auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
+    path("auth/profile/", ProfileView.as_view(), name="auth-profile"),
+    path("auth/register/", RegisterView.as_view(), name="auth-register"),
+    path("auth/google/", GoogleAuthView.as_view(), name="auth-google"),
 ]
