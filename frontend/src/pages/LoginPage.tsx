@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { useAuthContext } from '../providers/AuthProvider';
 import { notificationBus } from '../components/notifications/notificationBus';
+import { GoogleLoginButton } from '../components/auth/GoogleLoginButton';
 import styles from './AuthPage.module.css';
 
 interface LoginFormValues {
@@ -22,7 +23,7 @@ export const LoginPage = () => {
   } = useForm<LoginFormValues>({
     defaultValues: { username: '', password: '' }
   });
-  const { login, status } = useAuthContext();
+  const { login, loginWithGoogle, status } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -91,8 +92,24 @@ export const LoginPage = () => {
             Войти
           </Button>
         </form>
+        <div className={styles.divider}>
+          <span>или</span>
+        </div>
+        <GoogleLoginButton
+          onCredential={async (credential) => {
+            await loginWithGoogle({ credential });
+            notificationBus.publish({
+              type: 'success',
+              title: 'Добро пожаловать',
+              message: 'Вход через Google выполнен.'
+            });
+          }}
+        />
         <p className={styles.helpText}>
           Слишком много попыток? Подождите, пока аккаунт разблокируется, и повторите вход.
+        </p>
+        <p className={styles.helpText}>
+          Нет аккаунта? <Link to="/register">Зарегистрируйтесь</Link> за пару шагов или через Google.
         </p>
       </Card>
     </div>

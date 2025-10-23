@@ -4,9 +4,11 @@ import {
   QueryClientProvider,
   focusManager
 } from '@tanstack/react-query';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import { AuthProvider } from './AuthProvider';
 import { NotificationProvider } from '../components/notifications/NotificationProvider';
+import { env } from '../api/config/env';
 
 if (typeof window !== 'undefined') {
   focusManager.setEventListener((handleFocus) => {
@@ -47,11 +49,17 @@ export const AppProviders = ({ children }: Props) => {
     []
   );
 
-  return (
+  const tree = (
     <QueryClientProvider client={queryClient}>
       <NotificationProvider>
         <AuthProvider>{children}</AuthProvider>
       </NotificationProvider>
     </QueryClientProvider>
   );
+
+  if (!env.googleClientId) {
+    return tree;
+  }
+
+  return <GoogleOAuthProvider clientId={env.googleClientId}>{tree}</GoogleOAuthProvider>;
 };

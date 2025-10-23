@@ -7,9 +7,10 @@ export interface FeatureToggle {
 
 export interface PricingPlan {
   id: number;
+  key: string;
   name: string;
-  billingPeriod: 'monthly' | 'yearly';
-  price: number;
+  description?: string;
+  pricePerMonth: number;
   currency: string;
   trialDays: number;
   featureFlags: FeatureToggle[];

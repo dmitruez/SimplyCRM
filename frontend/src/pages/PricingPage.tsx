@@ -18,11 +18,12 @@ const formatPrice = (value: number, currency: string) =>
 const fallbackPlans: PricingPlan[] = [
   {
     id: 1,
+    key: 'free',
     name: 'Starter',
-    billingPeriod: 'monthly',
-    price: 0,
+    description: 'Бесплатный старт для малых команд',
+    pricePerMonth: 0,
     currency: 'RUB',
-    trialDays: 14,
+    trialDays: 30,
     featureFlags: [
       { code: 'catalog.read', label: 'Каталог: просмотр' },
       { code: 'sales.pipeline', label: 'Канбан сделок (до 3 воронок)' },
@@ -31,9 +32,10 @@ const fallbackPlans: PricingPlan[] = [
   },
   {
     id: 2,
+    key: 'pro',
     name: 'Growth',
-    billingPeriod: 'monthly',
-    price: 5900,
+    description: 'Расширенные инструменты продаж и аналитики',
+    pricePerMonth: 5900,
     currency: 'RUB',
     trialDays: 14,
     featureFlags: [
@@ -45,9 +47,10 @@ const fallbackPlans: PricingPlan[] = [
   },
   {
     id: 3,
+    key: 'enterprise',
     name: 'Scale',
-    billingPeriod: 'monthly',
-    price: 12900,
+    description: 'Корпоративные функции и интеграции',
+    pricePerMonth: 12900,
     currency: 'RUB',
     trialDays: 30,
     featureFlags: [
@@ -72,15 +75,15 @@ export const PricingPage = () => {
   const preparedPlans = useMemo(
     () =>
       plans.map((plan) => {
-        if (plan.price === 0) {
+        if (plan.pricePerMonth === 0) {
           return {
             plan,
             priceLabel: 'Бесплатно'
           };
         }
 
-        const basePrice = plan.billingPeriod === 'yearly' ? plan.price / 12 : plan.price;
-        const priceValue = billing === 'yearly' ? basePrice * 12 * 0.85 : basePrice;
+        const monthlyPrice = plan.pricePerMonth;
+        const priceValue = billing === 'yearly' ? monthlyPrice * 12 * 0.85 : monthlyPrice;
         const label = `${formatPrice(priceValue, plan.currency)} / ${billing === 'yearly' ? 'год' : 'месяц'}`;
 
         return {
@@ -120,12 +123,12 @@ export const PricingPage = () => {
             key={plan.id}
             planName={plan.name}
             priceLabel={priceLabel}
-            description={`Пробный период ${plan.trialDays} дней`}
+            description={plan.description ?? `Пробный период ${plan.trialDays} дней`}
             features={plan.featureFlags.map((flag) => ({
               label: flag.label,
               enabled: flag.enabled ?? true
             }))}
-            ctaLabel={plan.price === 0 ? 'Начать бесплатно' : 'Попробовать'}
+            ctaLabel={plan.pricePerMonth === 0 ? 'Начать бесплатно' : 'Попробовать'}
             highlighted={plan.name === 'Growth'}
             onCtaClick={() => {
               // eslint-disable-next-line no-alert
