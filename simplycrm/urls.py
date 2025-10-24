@@ -12,6 +12,7 @@ from simplycrm.catalog.urls import router as catalog_router
 from simplycrm.core.urls import router as core_router
 from simplycrm.core.views import (
     CSRFCookieView,
+    DashboardOverviewView,
     GoogleAuthView,
     ObtainAuthTokenView,
     ProfileView,
@@ -48,6 +49,7 @@ urlpatterns = [
     path("api/auth/profile/", ProfileView.as_view(), name="auth-profile"),
     path("api/auth/register/", RegisterView.as_view(), name="auth-register"),
     path("api/auth/google/", GoogleAuthView.as_view(), name="auth-google"),
+    path("api/dashboard/overview/", DashboardOverviewView.as_view(), name="dashboard-overview"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",

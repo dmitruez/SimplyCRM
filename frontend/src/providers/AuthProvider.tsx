@@ -11,7 +11,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 import { authApi } from '../api/auth';
-import { setAccessToken } from '../api/apiClient';
+import { getAccessToken, setAccessToken } from '../api/apiClient';
 import {
   AuthContextValue,
   AuthState,
@@ -33,7 +33,13 @@ const FEATURE_FLAG_CACHE_KEY = ['auth', 'featureFlags'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
-  const [state, setState] = useState<AuthState>(initialState);
+  const [state, setState] = useState<AuthState>(() => {
+    const token = getAccessToken();
+    if (token) {
+      return { status: 'loading', profile: null, accessToken: token };
+    }
+    return initialState;
+  });
   const isMounted = useRef(true);
 
   const setAuthState = useCallback((partial: Partial<AuthState>) => {
@@ -53,7 +59,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const fetchProfile = useCallback(async () => {
-    setAuthState((prev) => ({ ...prev, status: 'loading' }));
+    const token = getAccessToken();
+    if (!token) {
+      setAuthState({ status: 'unauthenticated', profile: null, accessToken: null });
+      return;
+    }
+    setAuthState((prev) => ({ ...prev, status: 'loading', accessToken: token }));
     try {
       const profile = await authApi.getProfile();
       if (!isMounted.current) return;
@@ -61,7 +72,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAuthState((prev) => ({
         ...prev,
         profile,
-        status: 'authenticated'
+        status: 'authenticated',
+        accessToken: token
       }));
       queryClient.setQueryData(FEATURE_FLAG_CACHE_KEY, profile.featureFlags);
     } catch (error: any) {
@@ -74,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           title: 'Не удалось загрузить профиль',
           message: 'Попробуйте обновить страницу или войдите снова.'
         });
-        setAuthState({ status: 'unauthenticated', profile: null });
+        setAuthState({ status: 'unauthenticated', profile: null, accessToken: null });
       }
     }
   }, [queryClient, setAuthState]);
