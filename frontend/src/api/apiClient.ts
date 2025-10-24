@@ -152,6 +152,76 @@ const resolveApiBaseUrl = (): string => {
   }
 };
 
+const extractTokenFromResponse = (response: AxiosResponse<{ csrfToken?: string }>): string | null => {
+  const headerToken = response.headers?.['x-csrftoken'];
+  if (typeof headerToken === 'string' && headerToken.trim().length > 0) {
+    return headerToken;
+  }
+  if (Array.isArray(headerToken) && headerToken[0]) {
+    return headerToken[0];
+  }
+  const dataToken = response.data?.csrfToken;
+  if (typeof dataToken === 'string' && dataToken.trim().length > 0) {
+    return dataToken;
+  }
+  return null;
+};
+
+const fetchCsrfToken = async (): Promise<string | null> => {
+  try {
+    const response = await apiClient.get<{ csrfToken?: string }>('/auth/csrf/');
+    return extractTokenFromResponse(response);
+  } catch (error) {
+    console.error('Не удалось получить CSRF токен', error);
+    return null;
+  }
+};
+
+const ensureCsrfToken = async () => {
+  if (csrfToken) {
+    return csrfToken;
+  }
+  if (!csrfRefreshPromise) {
+    csrfRefreshPromise = fetchCsrfToken().finally(() => {
+      csrfRefreshPromise = null;
+    });
+  }
+  csrfToken = await csrfRefreshPromise;
+  return csrfToken;
+};
+
+const resolveApiBaseUrl = (): string => {
+  const fallback = '/api';
+  const raw = env.apiBaseUrl?.trim();
+
+  if (!raw) {
+    return fallback;
+  }
+
+  if (raw.startsWith('/')) {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw);
+    if (typeof window !== 'undefined') {
+      const currentOrigin = window.location.origin;
+      if (url.origin !== currentOrigin && !env.apiAllowCrossOrigin) {
+        console.warn(
+          `VITE_API_BASE_URL origin (${url.origin}) doesn't match current origin (${currentOrigin}). ` +
+            `Falling back to ${fallback} to avoid CSRF trusted origins issues. ` +
+            'Set VITE_API_ALLOW_CROSS_ORIGIN=1 to force the provided base URL.'
+        );
+        return fallback;
+      }
+    }
+    return url.toString();
+  } catch (error) {
+    console.warn(`Invalid VITE_API_BASE_URL value "${raw}". Falling back to ${fallback}.`, error);
+    return fallback;
+  }
+};
+
 export const apiClient = axios.create({
   baseURL: resolveApiBaseUrl(),
   withCredentials: true,
