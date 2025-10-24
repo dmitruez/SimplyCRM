@@ -1,40 +1,28 @@
 export interface Deal {
   id: number;
-  title: string;
-  stage: string;
-  owner: string;
-  value: number;
-  currency: string;
-  expectedCloseDate: string;
+  name: string;
+  pipelineName: string;
+  stageName: string;
+  ownerName?: string;
+  amount: number;
+  closeDate: string | null;
   probability: number;
 }
 
 export interface DealNote {
   id: number;
-  author: string;
-  body: string;
+  authorName?: string;
+  content: string;
   createdAt: string;
-  relatedDealId?: number;
+  relatedObjectType: string;
+  relatedObjectId: number;
 }
 
 export interface PurchaseRecord {
   id: number;
-  orderNumber: string;
-  customerName: string;
+  status: string;
   totalAmount: number;
   currency: string;
-  status: string;
-  placedAt: string;
-}
-
-export interface DealListResponse {
-  results: Deal[];
-}
-
-export interface PurchaseListResponse {
-  results: PurchaseRecord[];
-}
-
-export interface NotesResponse {
-  results: DealNote[];
+  contactName?: string;
+  orderedAt: string | null;
 }

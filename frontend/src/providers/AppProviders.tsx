@@ -12,11 +12,15 @@ import { env } from '../api/config/env';
 
 if (typeof window !== 'undefined') {
   focusManager.setEventListener((handleFocus) => {
-    window.addEventListener('visibilitychange', handleFocus, false);
-    window.addEventListener('focus', handleFocus, false);
+    const visibilityListener = () => handleFocus(!document.hidden);
+    const focusListener = () => handleFocus(true);
+
+    window.addEventListener('visibilitychange', visibilityListener, false);
+    window.addEventListener('focus', focusListener, false);
+
     return () => {
-      window.removeEventListener('visibilitychange', handleFocus);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', visibilityListener);
+      window.removeEventListener('focus', focusListener);
     };
   });
 }

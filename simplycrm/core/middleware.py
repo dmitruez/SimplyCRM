@@ -72,6 +72,8 @@ class DDoSShieldMiddleware:
         return request.META.get("REMOTE_ADDR", "unknown")
 
     def _is_duplicate_request(self, request) -> bool:
+        if request.method in {"GET", "HEAD", "OPTIONS", "TRACE"}:
+            return False
         signature = request.headers.get("X-Request-Signature")
         if not signature:
             return False
