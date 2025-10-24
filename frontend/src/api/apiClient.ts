@@ -189,14 +189,6 @@ apiClient.interceptors.request.use(async (config) => {
   if (!SAFE_METHODS.has(method)) {
     const token = await ensureCsrfToken();
     if (token) {
-      headers.set('X-CSRFToken', token);
-      headers.set('X-Requested-With', 'XMLHttpRequest');
-    }
-  }
-  const method = (config.method ?? 'get').toUpperCase();
-  if (!SAFE_METHODS.has(method)) {
-    const token = await ensureCsrfToken();
-    if (token) {
       config.headers = {
         ...config.headers,
         'X-CSRFToken': token,
