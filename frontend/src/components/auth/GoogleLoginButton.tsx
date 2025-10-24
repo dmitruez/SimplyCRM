@@ -22,6 +22,9 @@ export const GoogleLoginButton = ({ onCredential, mode = 'signin' }: Props) => {
   }
 
   const handleSuccess = async (response: CredentialResponse) => {
+    if (isProcessing) {
+      return;
+    }
     if (!response.credential) {
       notificationBus.publish({
         type: 'error',
@@ -62,7 +65,6 @@ export const GoogleLoginButton = ({ onCredential, mode = 'signin' }: Props) => {
       logo_alignment="left"
       width="100%"
       context={mode === 'signup' ? 'signup' : 'signin'}
-      disabled={isProcessing}
     />
   );
 };

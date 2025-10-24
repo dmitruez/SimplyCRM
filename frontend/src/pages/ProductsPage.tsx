@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import styles from './ProductsPage.module.css';
 import { DataTable } from '../components/ui/DataTable';
 import { catalogApi } from '../api/catalog';
-import { Product, ProductFilters, Supplier } from '../types/catalog';
+import { Product, ProductFilters, ProductListResponse, Supplier } from '../types/catalog';
 
 const DEFAULT_FILTERS: ProductFilters = {
   page: 1,
@@ -26,10 +26,10 @@ export const ProductsPage = () => {
     staleTime: 300_000
   });
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching } = useQuery<ProductListResponse>({
     queryKey: ['catalog', 'products', 'list', filters],
     queryFn: () => catalogApi.listProducts(filters),
-    keepPreviousData: true
+    placeholderData: (previousData) => previousData
   });
 
   const products = data?.results ?? [];

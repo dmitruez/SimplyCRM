@@ -42,8 +42,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const isMounted = useRef(true);
 
-  const setAuthState = useCallback((partial: Partial<AuthState>) => {
-    setState((prev) => ({ ...prev, ...partial }));
+  type AuthStateUpdate = Partial<AuthState> | ((prev: AuthState) => AuthState);
+
+  const setAuthState = useCallback((update: AuthStateUpdate) => {
+    setState((prev) => {
+      if (typeof update === 'function') {
+        return (update as (snapshot: AuthState) => AuthState)(prev);
+      }
+      return { ...prev, ...update };
+    });
   }, []);
 
   const applyAuthResult = useCallback(

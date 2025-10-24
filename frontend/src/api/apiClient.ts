@@ -1,4 +1,9 @@
-import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosHeaders,
+  type AxiosError,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig
+} from 'axios';
 
 import { env } from './config/env';
 import { notificationBus } from '../components/notifications/notificationBus';
@@ -20,6 +25,22 @@ interface RequestMetadata {
 
 type RequestConfigWithMeta = InternalAxiosRequestConfig & {
   metadata?: RequestMetadata;
+};
+
+const ensureHeaders = (config: InternalAxiosRequestConfig): AxiosHeaders => {
+  if (!config.headers) {
+    const headers = new AxiosHeaders();
+    config.headers = headers;
+    return headers;
+  }
+
+  if (config.headers instanceof AxiosHeaders) {
+    return config.headers;
+  }
+
+  const headers = AxiosHeaders.from(config.headers);
+  config.headers = headers;
+  return headers;
 };
 
 const createSignature = (config: InternalAxiosRequestConfig): string | null => {
@@ -152,76 +173,6 @@ const resolveApiBaseUrl = (): string => {
   }
 };
 
-const extractTokenFromResponse = (response: AxiosResponse<{ csrfToken?: string }>): string | null => {
-  const headerToken = response.headers?.['x-csrftoken'];
-  if (typeof headerToken === 'string' && headerToken.trim().length > 0) {
-    return headerToken;
-  }
-  if (Array.isArray(headerToken) && headerToken[0]) {
-    return headerToken[0];
-  }
-  const dataToken = response.data?.csrfToken;
-  if (typeof dataToken === 'string' && dataToken.trim().length > 0) {
-    return dataToken;
-  }
-  return null;
-};
-
-const fetchCsrfToken = async (): Promise<string | null> => {
-  try {
-    const response = await apiClient.get<{ csrfToken?: string }>('/auth/csrf/');
-    return extractTokenFromResponse(response);
-  } catch (error) {
-    console.error('Не удалось получить CSRF токен', error);
-    return null;
-  }
-};
-
-const ensureCsrfToken = async () => {
-  if (csrfToken) {
-    return csrfToken;
-  }
-  if (!csrfRefreshPromise) {
-    csrfRefreshPromise = fetchCsrfToken().finally(() => {
-      csrfRefreshPromise = null;
-    });
-  }
-  csrfToken = await csrfRefreshPromise;
-  return csrfToken;
-};
-
-const resolveApiBaseUrl = (): string => {
-  const fallback = '/api';
-  const raw = env.apiBaseUrl?.trim();
-
-  if (!raw) {
-    return fallback;
-  }
-
-  if (raw.startsWith('/')) {
-    return raw;
-  }
-
-  try {
-    const url = new URL(raw);
-    if (typeof window !== 'undefined') {
-      const currentOrigin = window.location.origin;
-      if (url.origin !== currentOrigin && !env.apiAllowCrossOrigin) {
-        console.warn(
-          `VITE_API_BASE_URL origin (${url.origin}) doesn't match current origin (${currentOrigin}). ` +
-            `Falling back to ${fallback} to avoid CSRF trusted origins issues. ` +
-            'Set VITE_API_ALLOW_CROSS_ORIGIN=1 to force the provided base URL.'
-        );
-        return fallback;
-      }
-    }
-    return url.toString();
-  } catch (error) {
-    console.warn(`Invalid VITE_API_BASE_URL value "${raw}". Falling back to ${fallback}.`, error);
-    return fallback;
-  }
-};
-
 export const apiClient = axios.create({
   baseURL: resolveApiBaseUrl(),
   withCredentials: true,
@@ -230,11 +181,17 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(async (config) => {
   const typedConfig = config as RequestConfigWithMeta;
+  const headers = ensureHeaders(config);
   if (inMemoryToken) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${inMemoryToken}`
-    };
+    headers.set('Authorization', `Bearer ${inMemoryToken}`);
+  }
+  const method = (config.method ?? 'get').toUpperCase();
+  if (!SAFE_METHODS.has(method)) {
+    const token = await ensureCsrfToken();
+    if (token) {
+      headers.set('X-CSRFToken', token);
+      headers.set('X-Requested-With', 'XMLHttpRequest');
+    }
   }
   const method = (config.method ?? 'get').toUpperCase();
   if (!SAFE_METHODS.has(method)) {
@@ -249,10 +206,7 @@ apiClient.interceptors.request.use(async (config) => {
   }
   const signature = createSignature(config);
   if (signature) {
-    config.headers = {
-      ...config.headers,
-      'X-Request-Signature': signature
-    };
+    headers.set('X-Request-Signature', signature);
   }
   typedConfig.metadata = { retryCount: 0, signature };
   return config;
@@ -288,11 +242,9 @@ apiClient.interceptors.response.use(
         csrfToken = null;
         const freshToken = await ensureCsrfToken();
         if (freshToken) {
-          config.headers = {
-            ...config.headers,
-            'X-CSRFToken': freshToken,
-            'X-Requested-With': 'XMLHttpRequest'
-          };
+          const retryHeaders = ensureHeaders(config);
+          retryHeaders.set('X-CSRFToken', freshToken);
+          retryHeaders.set('X-Requested-With', 'XMLHttpRequest');
           config.metadata = metadata;
           return apiClient(config);
         }

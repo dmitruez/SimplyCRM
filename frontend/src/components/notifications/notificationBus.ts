@@ -21,7 +21,9 @@ class NotificationBus {
 
   subscribe(listener: Listener) {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   publish(notification: NotificationMessage) {

@@ -55,29 +55,6 @@ class CSRFCookieView(APIView):
         return response
 
 
-class CSRFCookieView(APIView):
-    """Issue a CSRF cookie/token pair for cross-origin API clients."""
-
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request, *args, **kwargs):  # type: ignore[override]
-        token = get_token(request)
-        response = Response({"csrfToken": token})
-
-        response.set_cookie(
-            settings.CSRF_COOKIE_NAME,
-            token,
-            max_age=settings.CSRF_COOKIE_AGE,
-            domain=settings.CSRF_COOKIE_DOMAIN,
-            path=settings.CSRF_COOKIE_PATH,
-            secure=settings.CSRF_COOKIE_SECURE,
-            httponly=settings.CSRF_COOKIE_HTTPONLY,
-            samesite=settings.CSRF_COOKIE_SAMESITE,
-        )
-        response["X-CSRFToken"] = token
-        return response
-
-
 class ObtainAuthTokenView(generics.GenericAPIView):
     """Issue DRF tokens with brute-force protection."""
 
