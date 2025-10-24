@@ -27,8 +27,8 @@ const SalesSection = () => {
   });
 
   const { data: deals = [] } = useQuery({
-    queryKey: ['sales', 'deals', 'open'],
-    queryFn: () => salesApi.listDeals({ stage: 'open' }),
+    queryKey: ['sales', 'deals', 'overview'],
+    queryFn: () => salesApi.listDeals({ ordering: '-close_date' }),
     staleTime: 30_000
   });
 
@@ -46,30 +46,31 @@ const SalesSection = () => {
 
   const dealColumns = useMemo(
     () => [
-      { key: 'title', header: 'Сделка' },
+      { key: 'name', header: 'Сделка' },
       {
-        key: 'stage',
+        key: 'stageName',
         header: 'Этап',
-        render: (deal: Deal) => <StatusBadge status={deal.stage} />
+        render: (deal: Deal) => <StatusBadge status={deal.stageName} />
       },
       {
-        key: 'owner',
-        header: 'Ответственный'
+        key: 'ownerName',
+        header: 'Ответственный',
+        render: (deal: Deal) => deal.ownerName ?? '—'
       },
       {
-        key: 'value',
+        key: 'amount',
         header: 'Сумма',
-        render: (deal: Deal) => `${deal.value.toLocaleString('ru-RU')} ${deal.currency}`
+        render: (deal: Deal) => `${deal.amount.toLocaleString('ru-RU')} USD`
       },
       {
-        key: 'expectedCloseDate',
+        key: 'closeDate',
         header: 'Закрытие',
-        render: (deal: Deal) => new Date(deal.expectedCloseDate).toLocaleDateString()
+        render: (deal: Deal) => (deal.closeDate ? new Date(deal.closeDate).toLocaleDateString() : '—')
       },
       {
         key: 'probability',
         header: 'Вероятность',
-        render: (deal: Deal) => `${deal.probability}%`
+        render: (deal: Deal) => `${Math.round(deal.probability <= 1 ? deal.probability * 100 : deal.probability)}%`
       }
     ],
     []
@@ -77,8 +78,16 @@ const SalesSection = () => {
 
   const purchaseColumns = useMemo(
     () => [
-      { key: 'orderNumber', header: 'Заказ' },
-      { key: 'customerName', header: 'Клиент' },
+      {
+        key: 'id',
+        header: 'Заказ',
+        render: (purchase: PurchaseRecord) => `#${purchase.id}`
+      },
+      {
+        key: 'contactName',
+        header: 'Клиент',
+        render: (purchase: PurchaseRecord) => purchase.contactName ?? '—'
+      },
       {
         key: 'totalAmount',
         header: 'Итого',
@@ -91,18 +100,19 @@ const SalesSection = () => {
         render: (purchase: PurchaseRecord) => {
           const normalized = purchase.status.toLowerCase();
           let tone: 'neutral' | 'success' | 'warning' = 'neutral';
-          if (normalized.includes('оплачен') || normalized.includes('выполнен')) {
+          if (normalized.includes('complete') || normalized.includes('fulfill') || normalized.includes('paid')) {
             tone = 'success';
-          } else if (normalized.includes('ожид') || normalized.includes('долг')) {
+          } else if (normalized.includes('pending') || normalized.includes('draft')) {
             tone = 'warning';
           }
           return <StatusBadge status={purchase.status} tone={tone} />;
         }
       },
       {
-        key: 'placedAt',
+        key: 'orderedAt',
         header: 'Создан',
-        render: (purchase: PurchaseRecord) => new Date(purchase.placedAt).toLocaleString()
+        render: (purchase: PurchaseRecord) =>
+          purchase.orderedAt ? new Date(purchase.orderedAt).toLocaleString() : '—'
       }
     ],
     []
@@ -151,7 +161,7 @@ const SalesSection = () => {
           <ul>
             {notes.map((note: DealNote) => (
               <li key={note.id}>
-                <strong>{note.author}</strong> — {note.body}{' '}
+                <strong>{note.authorName ?? 'Без автора'}</strong> — {note.content}{' '}
                 <span style={{ color: 'rgba(17,24,39,0.6)' }}>
                   {new Date(note.createdAt).toLocaleString()}
                 </span>

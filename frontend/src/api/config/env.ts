@@ -15,10 +15,13 @@ const parseNumber = (value: string | undefined, fallback: number) => {
   return Number.isNaN(parsed) ? fallback : parsed;
 };
 
+const normalizeFlag = (value: string | undefined) => value === '1' || value?.toLowerCase() === 'true';
+
 export const env = {
   apiBaseUrl: getEnv('VITE_API_BASE_URL'),
   recaptchaSiteKey: import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '',
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
   apiMaxRetries: parseNumber(import.meta.env.VITE_API_MAX_RETRIES, 2),
-  apiRetryBaseDelayMs: parseNumber(import.meta.env.VITE_API_RETRY_BASE_DELAY_MS, 800)
+  apiRetryBaseDelayMs: parseNumber(import.meta.env.VITE_API_RETRY_BASE_DELAY_MS, 800),
+  apiAllowCrossOrigin: normalizeFlag(import.meta.env.VITE_API_ALLOW_CROSS_ORIGIN)
 };

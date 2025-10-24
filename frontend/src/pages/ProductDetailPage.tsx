@@ -9,6 +9,11 @@ import { salesApi } from '../api/sales';
 import { Deal, DealNote } from '../types/sales';
 import { DataTable, StatusBadge } from '../components/ui/DataTable';
 
+const formatProbability = (value: number) => {
+  const normalized = value <= 1 ? value * 100 : value;
+  return `${Math.round(normalized)}%`;
+};
+
 export const ProductDetailPage = () => {
   const params = useParams();
   const productId = Number.parseInt(params.productId ?? '', 10);
@@ -24,9 +29,8 @@ export const ProductDetailPage = () => {
   });
 
   const { data: deals = [] } = useQuery({
-    queryKey: ['sales', 'deals', 'product', productId],
-    queryFn: () => salesApi.listDeals({ productId }),
-    enabled: Number.isFinite(productId)
+    queryKey: ['sales', 'deals', 'recent'],
+    queryFn: () => salesApi.listDeals({ ordering: '-close_date' })
   });
 
   const { data: notes = [] } = useQuery({
@@ -34,36 +38,53 @@ export const ProductDetailPage = () => {
     queryFn: () => salesApi.listNotes()
   });
 
+  const amountFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat('ru-RU', {
+        style: 'currency',
+        currency: 'USD'
+      }),
+    []
+  );
+
   const relatedNotes = useMemo(() => {
-    if (!deals.length) return [] as DealNote[];
-    const dealIds = new Set(deals.map((deal) => deal.id));
-    return notes.filter((note) => (note.relatedDealId ? dealIds.has(note.relatedDealId) : false));
-  }, [deals, notes]);
+    return notes.filter(
+      (note) =>
+        note.relatedObjectType.toLowerCase() === 'product' &&
+        note.relatedObjectId === productId
+    );
+  }, [notes, productId]);
 
   const dealColumns = useMemo(
     () => [
-      { key: 'title', header: 'Сделка' },
+      { key: 'name', header: 'Сделка' },
+      { key: 'pipelineName', header: 'Воронка' },
       {
-        key: 'stage',
+        key: 'stageName',
         header: 'Этап',
-        render: (deal: Deal) => <StatusBadge status={deal.stage} />
+        render: (deal: Deal) => <StatusBadge status={deal.stageName} />
       },
       {
-        key: 'value',
+        key: 'amount',
         header: 'Сумма',
-        render: (deal: Deal) => `${deal.value.toLocaleString('ru-RU')} ${deal.currency}`
+        render: (deal: Deal) => amountFormatter.format(deal.amount)
       },
       {
-        key: 'owner',
+        key: 'ownerName',
         header: 'Ответственный'
       },
       {
-        key: 'expectedCloseDate',
+        key: 'closeDate',
         header: 'Закрытие',
-        render: (deal: Deal) => new Date(deal.expectedCloseDate).toLocaleDateString()
+        render: (deal: Deal) => (deal.closeDate ? new Date(deal.closeDate).toLocaleDateString() : '—')
+      },
+      {
+        key: 'probability',
+        header: 'Вероятность',
+        render: (deal: Deal) => formatProbability(deal.probability)
       }
     ],
-    []
+    [amountFormatter]
   );
 
   if (!Number.isFinite(productId)) {
@@ -115,8 +136,8 @@ export const ProductDetailPage = () => {
           <div className={styles.notesList}>
             {relatedNotes.map((note) => (
               <div key={note.id} className={styles.note}>
-                <strong>{note.author}</strong>
-                <p>{note.body}</p>
+                <strong>{note.authorName ?? 'Без автора'}</strong>
+                <p>{note.content}</p>
                 <small>{new Date(note.createdAt).toLocaleString()}</small>
               </div>
             ))}

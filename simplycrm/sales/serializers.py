@@ -64,6 +64,10 @@ class LeadSerializer(serializers.ModelSerializer):
 
 
 class OpportunitySerializer(serializers.ModelSerializer):
+    pipeline_name = serializers.CharField(source="pipeline.name", read_only=True)
+    stage_name = serializers.CharField(source="stage.name", read_only=True)
+    owner_name = serializers.SerializerMethodField()
+
     class Meta:
         model = models.Opportunity
         fields = [
@@ -77,8 +81,16 @@ class OpportunitySerializer(serializers.ModelSerializer):
             "close_date",
             "probability",
             "owner",
+            "pipeline_name",
+            "stage_name",
+            "owner_name",
         ]
         read_only_fields = ["id"]
+
+    def get_owner_name(self, obj: models.Opportunity) -> str | None:  # noqa: D401
+        if not obj.owner:
+            return None
+        return obj.owner.get_full_name() or obj.owner.username
 
 
 class DealActivitySerializer(serializers.ModelSerializer):
@@ -100,6 +112,7 @@ class OrderLineSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     lines = OrderLineSerializer(many=True, read_only=True)
     total_amount = serializers.SerializerMethodField()
+    contact_name = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Order
@@ -107,6 +120,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "id",
             "organization",
             "contact",
+            "contact_name",
             "opportunity",
             "status",
             "currency",
@@ -119,6 +133,18 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_total_amount(self, obj: models.Order) -> Decimal:
         return obj.total_amount()
+
+    def get_contact_name(self, obj: models.Order) -> str | None:  # noqa: D401
+        contact = obj.contact
+        if not contact:
+            return None
+        parts = [contact.first_name, contact.last_name]
+        name = " ".join([part for part in parts if part]).strip()
+        if not name and contact.company:
+            return contact.company.name
+        if not name and contact.email:
+            return contact.email
+        return name or None
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
@@ -143,10 +169,26 @@ class ShipmentSerializer(serializers.ModelSerializer):
 
 
 class NoteSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
     class Meta:
         model = models.Note
-        fields = ["id", "organization", "author", "content", "related_object_type", "related_object_id", "created_at"]
+        fields = [
+            "id",
+            "organization",
+            "author",
+            "author_name",
+            "content",
+            "related_object_type",
+            "related_object_id",
+            "created_at",
+        ]
         read_only_fields = ["id", "created_at"]
+
+    def get_author_name(self, obj: models.Note) -> str | None:  # noqa: D401
+        if not obj.author:
+            return None
+        return obj.author.get_full_name() or obj.author.username
 
 
 class AttachmentSerializer(serializers.ModelSerializer):

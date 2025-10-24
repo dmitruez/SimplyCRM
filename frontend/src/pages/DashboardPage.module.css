@@ -1,20 +1,230 @@
 .wrapper {
   display: grid;
   gap: var(--space-xl);
+  align-content: start;
 }
 
-.grid {
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.headerTitle {
+  display: grid;
+  gap: var(--space-xs);
+  max-width: 640px;
+}
+
+.headerTitle h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.headerTitle p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.refreshButton {
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.summaryGrid {
   display: grid;
   gap: var(--space-md);
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.metricCard {
+  gap: var(--space-xs);
+}
+
+.metricLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.metricValue {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.metricValueSmall {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.metricHint {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.contentGrid {
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+  align-items: start;
+}
+
+.column {
+  display: grid;
+  gap: var(--space-xl);
+  align-content: start;
+}
+
+.sectionCard {
+  gap: var(--space-md);
 }
 
 .sectionHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
+  gap: var(--space-sm);
 }
 
 .sectionHeader h2 {
   margin: 0;
+  font-size: 1.25rem;
+}
+
+.sectionMeta {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.tableSection {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.tableTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.listItem {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.listPrimary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.listSecondary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.listTag {
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-full);
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.notesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.noteItem {
+  border-left: 3px solid rgba(14, 95, 216, 0.18);
+  padding-left: var(--space-md);
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.noteHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.noteContent {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.noteMeta {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.emptyState {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.splitGrid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.catalogStats {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.state {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2xl) 0;
+}
+
+@media (max-width: 1200px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerTitle h1 {
+    font-size: 1.75rem;
+  }
 }
