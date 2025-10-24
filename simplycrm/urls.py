@@ -11,6 +11,7 @@ from simplycrm.automation.urls import router as automation_router
 from simplycrm.catalog.urls import router as catalog_router
 from simplycrm.core.urls import router as core_router
 from simplycrm.core.views import (
+    CSRFCookieView,
     GoogleAuthView,
     ObtainAuthTokenView,
     ProfileView,
@@ -41,6 +42,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("api/auth/", include("rest_framework.urls")),
+    path("api/auth/csrf/", CSRFCookieView.as_view(), name="auth-csrf"),
     path("api/auth/token/", ObtainAuthTokenView.as_view(), name="auth-token"),
     path("api/auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
     path("api/auth/profile/", ProfileView.as_view(), name="auth-profile"),

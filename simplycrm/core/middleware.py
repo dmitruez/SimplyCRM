@@ -8,6 +8,9 @@ from django.core.cache import cache
 from django.http import JsonResponse
 
 
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+
+
 class DDoSShieldMiddleware:
     """Apply burst limiting and duplicate request detection per client IP."""
 
@@ -72,6 +75,9 @@ class DDoSShieldMiddleware:
         return request.META.get("REMOTE_ADDR", "unknown")
 
     def _is_duplicate_request(self, request) -> bool:
+        method = getattr(request, "method", "GET")
+        if method.upper() in SAFE_METHODS:
+            return False
         signature = request.headers.get("X-Request-Signature")
         if not signature:
             return False

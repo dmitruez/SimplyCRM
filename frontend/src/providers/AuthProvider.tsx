@@ -11,7 +11,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 import { authApi } from '../api/auth';
-import { setAccessToken } from '../api/apiClient';
+import { bootstrapAccessToken, setAccessToken } from '../api/apiClient';
 import {
   AuthContextValue,
   AuthState,
@@ -29,11 +29,23 @@ const initialState: AuthState = {
   accessToken: null
 };
 
+const deriveInitialState = (): AuthState => {
+  const token = bootstrapAccessToken();
+  if (token) {
+    return {
+      status: 'loading',
+      profile: null,
+      accessToken: token
+    };
+  }
+  return { ...initialState };
+};
+
 const FEATURE_FLAG_CACHE_KEY = ['auth', 'featureFlags'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
-  const [state, setState] = useState<AuthState>(initialState);
+  const [state, setState] = useState<AuthState>(deriveInitialState);
   const isMounted = useRef(true);
 
   const setAuthState = useCallback((partial: Partial<AuthState>) => {

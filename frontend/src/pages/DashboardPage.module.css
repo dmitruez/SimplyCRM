@@ -1,20 +1,240 @@
 .wrapper {
   display: grid;
   gap: var(--space-xl);
+  padding-bottom: var(--space-xl);
 }
 
-.grid {
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.subtitle {
+  margin: var(--space-xs) 0 0;
+  color: rgba(17, 24, 39, 0.7);
+  max-width: 48rem;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+}
+
+.sectionDescription {
+  margin: var(--space-xs) 0 var(--space-md);
+  color: rgba(17, 24, 39, 0.65);
+}
+
+.emptyMessage {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: rgba(59, 130, 246, 0.08);
+  color: rgba(17, 24, 39, 0.75);
+}
+
+.pipelineBoard {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.pipelineCard {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.pipelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.pipelineBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  padding: 0 var(--space-sm);
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: rgba(37, 99, 235, 0.85);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.stageColumns {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stageColumn {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(17, 24, 39, 0.02);
+  border-radius: var(--radius-lg);
+}
+
+.stageTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-weight: 600;
+}
+
+.stageBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.16);
+  color: rgba(17, 24, 39, 0.7);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.stageEmpty {
+  color: rgba(17, 24, 39, 0.55);
+  font-size: 0.9rem;
+}
+
+.opportunityList {
+  display: grid;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.opportunityCard {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.opportunityMain {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.opportunityMain strong {
+  font-size: 1rem;
+}
+
+.opportunityMain span {
+  font-weight: 600;
+  color: rgba(37, 99, 235, 0.85);
+}
+
+.opportunityMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  color: rgba(17, 24, 39, 0.6);
+}
+
+.sectionGrid {
+  display: grid;
+  gap: var(--space-xl);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.list {
+  list-style: none;
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.listItem {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: rgba(17, 24, 39, 0.03);
+  display: grid;
+  gap: var(--space-xxs);
+}
+
+.listItemTitle {
+  font-weight: 600;
+  color: rgba(17, 24, 39, 0.92);
+}
+
+.listItemMeta {
+  font-size: 0.85rem;
+  color: rgba(17, 24, 39, 0.58);
+}
+
+.inventoryGrid {
   display: grid;
   gap: var(--space-md);
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
-.sectionHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.inventoryCard {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.12);
 }
 
-.sectionHeader h2 {
+.inventoryMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  color: rgba(17, 24, 39, 0.58);
+}
+
+.recommendationAction {
+  align-self: flex-start;
+  padding: 0 var(--space-sm);
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.15);
+  color: rgba(5, 150, 105, 0.9);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.inlineList {
+  list-style: none;
+  display: grid;
+  gap: var(--space-xxs);
   margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+  color: rgba(17, 24, 39, 0.65);
+}
+
+@media (max-width: 768px) {
+  .opportunityMeta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .inventoryMeta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
