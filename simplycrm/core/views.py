@@ -5,6 +5,7 @@ import importlib
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.middleware.csrf import get_token
 from django.utils.translation import gettext_lazy as _
 from rest_framework import generics, permissions, status
 from rest_framework.authtoken.models import Token
@@ -22,6 +23,29 @@ from simplycrm.core.serializers import (
 )
 from simplycrm.core.services import provision_google_account
 from simplycrm.core.throttling import LoginRateThrottle, RegistrationRateThrottle
+
+
+class CSRFCookieView(APIView):
+    """Issue a CSRF cookie/token pair for cross-origin API clients."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):  # type: ignore[override]
+        token = get_token(request)
+        response = Response({"csrfToken": token})
+
+        response.set_cookie(
+            settings.CSRF_COOKIE_NAME,
+            token,
+            max_age=settings.CSRF_COOKIE_AGE,
+            domain=settings.CSRF_COOKIE_DOMAIN,
+            path=settings.CSRF_COOKIE_PATH,
+            secure=settings.CSRF_COOKIE_SECURE,
+            httponly=settings.CSRF_COOKIE_HTTPONLY,
+            samesite=settings.CSRF_COOKIE_SAMESITE,
+        )
+        response["X-CSRFToken"] = token
+        return response
 
 
 class ObtainAuthTokenView(generics.GenericAPIView):

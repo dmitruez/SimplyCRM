@@ -1,13 +1,18 @@
-import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
 import { env } from './config/env';
 import { notificationBus } from '../components/notifications/notificationBus';
 
 let inMemoryToken: string | null = null;
+let csrfToken: string | null = null;
+let csrfRefreshPromise: Promise<string | null> | null = null;
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 
 interface RequestMetadata {
   retryCount: number;
   signature?: string;
+  csrfRetried?: boolean;
 }
 
 type RequestConfigWithMeta = InternalAxiosRequestConfig & {
@@ -44,6 +49,44 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const setAccessToken = (token: string | null) => {
   inMemoryToken = token;
+};
+
+const extractTokenFromResponse = (response: AxiosResponse<{ csrfToken?: string }>): string | null => {
+  const headerToken = response.headers?.['x-csrftoken'];
+  if (typeof headerToken === 'string' && headerToken.trim().length > 0) {
+    return headerToken;
+  }
+  if (Array.isArray(headerToken) && headerToken[0]) {
+    return headerToken[0];
+  }
+  const dataToken = response.data?.csrfToken;
+  if (typeof dataToken === 'string' && dataToken.trim().length > 0) {
+    return dataToken;
+  }
+  return null;
+};
+
+const fetchCsrfToken = async (): Promise<string | null> => {
+  try {
+    const response = await apiClient.get<{ csrfToken?: string }>('/auth/csrf/');
+    return extractTokenFromResponse(response);
+  } catch (error) {
+    console.error('Не удалось получить CSRF токен', error);
+    return null;
+  }
+};
+
+const ensureCsrfToken = async () => {
+  if (csrfToken) {
+    return csrfToken;
+  }
+  if (!csrfRefreshPromise) {
+    csrfRefreshPromise = fetchCsrfToken().finally(() => {
+      csrfRefreshPromise = null;
+    });
+  }
+  csrfToken = await csrfRefreshPromise;
+  return csrfToken;
 };
 
 const resolveApiBaseUrl = (): string => {
@@ -84,13 +127,24 @@ export const apiClient = axios.create({
   timeout: 10_000
 });
 
-apiClient.interceptors.request.use((config) => {
+apiClient.interceptors.request.use(async (config) => {
   const typedConfig = config as RequestConfigWithMeta;
   if (inMemoryToken) {
     config.headers = {
       ...config.headers,
       Authorization: `Bearer ${inMemoryToken}`
     };
+  }
+  const method = (config.method ?? 'get').toUpperCase();
+  if (!SAFE_METHODS.has(method)) {
+    const token = await ensureCsrfToken();
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'X-CSRFToken': token,
+        'X-Requested-With': 'XMLHttpRequest'
+      };
+    }
   }
   const signature = createSignature(config);
   if (signature) {
@@ -104,7 +158,15 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const headerToken = response.headers?.['x-csrftoken'];
+    if (typeof headerToken === 'string' && headerToken.trim().length > 0) {
+      csrfToken = headerToken;
+    } else if (Array.isArray(headerToken) && headerToken[0]) {
+      csrfToken = headerToken[0];
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const status = error?.response?.status;
     const config = error.config as RequestConfigWithMeta | undefined;
@@ -116,6 +178,24 @@ apiClient.interceptors.response.use(
         title: 'Сессия истекла',
         message: 'Пожалуйста, войдите снова для продолжения работы.'
       });
+    }
+
+    if (status === 403 && config) {
+      const detail = (error.response?.data as { detail?: string } | undefined)?.detail ?? '';
+      if (!metadata.csrfRetried && detail.toLowerCase().includes('csrf')) {
+        metadata.csrfRetried = true;
+        csrfToken = null;
+        const freshToken = await ensureCsrfToken();
+        if (freshToken) {
+          config.headers = {
+            ...config.headers,
+            'X-CSRFToken': freshToken,
+            'X-Requested-With': 'XMLHttpRequest'
+          };
+          config.metadata = metadata;
+          return apiClient(config);
+        }
+      }
     }
 
     if (status === 429 || status === 423) {
