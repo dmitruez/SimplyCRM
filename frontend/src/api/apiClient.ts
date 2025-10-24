@@ -193,6 +193,17 @@ apiClient.interceptors.request.use(async (config) => {
       headers.set('X-Requested-With', 'XMLHttpRequest');
     }
   }
+  const method = (config.method ?? 'get').toUpperCase();
+  if (!SAFE_METHODS.has(method)) {
+    const token = await ensureCsrfToken();
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'X-CSRFToken': token,
+        'X-Requested-With': 'XMLHttpRequest'
+      };
+    }
+  }
   const signature = createSignature(config);
   if (signature) {
     headers.set('X-Request-Signature', signature);
