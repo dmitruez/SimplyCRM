@@ -5,5 +5,5 @@ from django.apps import AppConfig
 
 
 class AssistantConfig(AppConfig):
-    name = "simplycrm.assistant"
-    verbose_name = "AI Assistant"
+	name = "simplycrm.assistant"
+	verbose_name = "AI Assistant"

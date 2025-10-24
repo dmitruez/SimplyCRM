@@ -1,27 +1,27 @@
 .wrapper {
-  display: grid;
-  gap: var(--space-xl);
+    display: grid;
+    gap: var(--space-xl);
 }
 
 .header {
-  text-align: center;
-  display: grid;
-  gap: var(--space-sm);
+    text-align: center;
+    display: grid;
+    gap: var(--space-sm);
 }
 
 .toggle {
-  display: inline-flex;
-  gap: var(--space-xs);
-  padding: 0.5rem;
-  border-radius: var(--radius-full);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-  align-items: center;
-  justify-content: center;
+    display: inline-flex;
+    gap: var(--space-xs);
+    padding: 0.5rem;
+    border-radius: var(--radius-full);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    align-items: center;
+    justify-content: center;
 }
 
 .plansGrid {
-  display: grid;
-  gap: var(--space-lg);
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }

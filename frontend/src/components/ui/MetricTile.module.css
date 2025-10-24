@@ -1,24 +1,24 @@
 .tile {
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  background: var(--color-surface);
-  border: 1px solid rgba(14, 95, 216, 0.12);
-  box-shadow: var(--shadow-sm);
-  display: grid;
-  gap: var(--space-xs);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    background: var(--color-surface);
+    border: 1px solid rgba(14, 95, 216, 0.12);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: var(--space-xs);
 }
 
 .title {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
 }
 
 .value {
-  font-size: 1.75rem;
-  font-weight: 700;
+    font-size: 1.75rem;
+    font-weight: 700;
 }
 
 .delta {
-  font-size: 0.875rem;
-  color: var(--color-accent);
+    font-size: 0.875rem;
+    color: var(--color-accent);
 }

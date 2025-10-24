@@ -1,12 +1,12 @@
 .card {
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(14, 95, 216, 0.1);
-  background: var(--color-surface);
-  display: grid;
-  gap: var(--space-xs);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(14, 95, 216, 0.1);
+    background: var(--color-surface);
+    display: grid;
+    gap: var(--space-xs);
 }
 
 .author {
-  font-weight: 600;
+    font-weight: 600;
 }

@@ -4,6 +4,6 @@ from django.apps import AppConfig
 
 
 class CoreConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "simplycrm.core"
-    verbose_name = "SimplyCRM Core"
+	default_auto_field = "django.db.models.BigAutoField"
+	name = "simplycrm.core"
+	verbose_name = "SimplyCRM Core"

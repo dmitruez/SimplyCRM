@@ -1,24 +1,24 @@
 .list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: var(--space-sm);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-sm);
 }
 
 .item {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: flex-start;
+    display: flex;
+    gap: var(--space-sm);
+    align-items: flex-start;
 }
 
 .icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(82, 227, 194, 0.2);
-  color: var(--color-primary);
-  display: grid;
-  place-items: center;
-  font-weight: 700;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(82, 227, 194, 0.2);
+    color: var(--color-primary);
+    display: grid;
+    place-items: center;
+    font-weight: 700;
 }

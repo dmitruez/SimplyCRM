@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from rest_framework import routers
-
 from simplycrm.analytics import viewsets
+
 
 router = routers.DefaultRouter()
 router.register(r"metric-definitions", viewsets.MetricDefinitionViewSet, basename="metric-definition")

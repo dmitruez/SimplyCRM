@@ -4,6 +4,6 @@ from django.apps import AppConfig
 
 
 class CatalogConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "simplycrm.catalog"
-    verbose_name = "SimplyCRM Catalog"
+	default_auto_field = "django.db.models.BigAutoField"
+	name = "simplycrm.catalog"
+	verbose_name = "SimplyCRM Catalog"
