@@ -5,20 +5,22 @@ import importlib
 from datetime import date, timedelta
 from decimal import Decimal
 
-import pandas as pd
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.db.models.functions import Coalesce
 from django.middleware.csrf import get_token
 from django.utils import timezone
-from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from django.utils.text import slugify
 from rest_framework import generics, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+import pandas as pd
+
 from simplycrm.catalog import models as catalog_models
 from simplycrm.core import models as core_models
 from simplycrm.core.security import LoginAttemptTracker
@@ -158,12 +160,12 @@ def put(self, request, *args, **kwargs):  # type: ignore[override]
 
 PLAN_API_CATALOG: dict[str, list[dict[str, str]]] = {
 	core_models.SubscriptionPlan.FREE: [
-		{"method": "GET /api/catalog/products/", "description": "Просмотр каталога товаров"},
+		{"method": "GET /api/products/", "description": "Просмотр каталога товаров"},
 		{"method": "GET /api/sales/pipelines/", "description": "Доступ к базовым воронкам продаж"},
 		{"method": "POST /api/assistant/chat/", "description": "10 запросов к AI-ассистенту"},
 	],
 	core_models.SubscriptionPlan.PRO: [
-		{"method": "POST /api/catalog/products/", "description": "Создание и обновление товаров"},
+		{"method": "POST /api/products/", "description": "Создание и обновление товаров"},
 		{"method": "GET /api/sales/orders/", "description": "Работа с заказами и счетами"},
 		{"method": "GET /api/analytics/forecasts/", "description": "Прогноз продаж и спроса"},
 		{"method": "POST /api/assistant/chat/", "description": "Безлимитные подсказки AI-ассистента"},
