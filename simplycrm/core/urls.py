@@ -12,6 +12,9 @@ from simplycrm.core.views import (
     ProfileView,
     RegisterView,
     RevokeAuthTokenView,
+    BillingOverviewView,
+    ChangeSubscriptionPlanView,
+    ExcelDataImportView,
 )
 
 router = routers.DefaultRouter()
@@ -31,4 +34,7 @@ urlpatterns = [
     path("auth/profile/", ProfileView.as_view(), name="auth-profile"),
     path("auth/register/", RegisterView.as_view(), name="auth-register"),
     path("auth/google/", GoogleAuthView.as_view(), name="auth-google"),
+    path("billing/overview/", BillingOverviewView.as_view(), name="billing-overview"),
+    path("billing/change-plan/", ChangeSubscriptionPlanView.as_view(), name="billing-change-plan"),
+    path("data-import/", ExcelDataImportView.as_view(), name="data-import"),
 ]

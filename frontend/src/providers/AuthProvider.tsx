@@ -142,6 +142,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await fetchProfile();
   }, [fetchProfile]);
 
+  const updateProfile = useCallback<AuthContextValue['updateProfile']>(
+    async (payload) => {
+      const profile = await authApi.updateProfile({
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        email: payload.email,
+        title: payload.title,
+        timezone: payload.timezone,
+        locale: payload.locale
+      });
+      setAuthState((prev) => ({
+        ...prev,
+        status: 'authenticated',
+        profile
+      }));
+      queryClient.setQueryData(FEATURE_FLAG_CACHE_KEY, profile.featureFlags);
+      notificationBus.publish({
+        type: 'success',
+        title: 'Профиль обновлён',
+        message: 'Изменения успешно сохранены.'
+      });
+      return profile;
+    },
+    [queryClient]
+  );
+
   const isFeatureEnabled = useCallback(
     (code: string) => {
       const flags: FeatureFlag[] =
@@ -162,9 +188,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       register,
       logout,
       refreshProfile,
-      isFeatureEnabled
+      isFeatureEnabled,
+      updateProfile
     }),
-    [isFeatureEnabled, login, loginWithGoogle, logout, refreshProfile, register, state]
+    [isFeatureEnabled, login, loginWithGoogle, logout, refreshProfile, register, state, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

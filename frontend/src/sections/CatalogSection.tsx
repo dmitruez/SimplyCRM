@@ -30,7 +30,7 @@ const CatalogSection = () => {
   const { data: topProducts = [], isError: isProductsError } = useQuery({
     queryKey: ['catalog', 'products', 'top'],
     queryFn: async () => {
-      const response = await catalogApi.listProducts({ pageSize: 5, ordering: '-updated_at' });
+      const response = await catalogApi.listProducts({ pageSize: 5, ordering: '-id' });
       return response.results;
     },
     staleTime: 90_000,
@@ -42,19 +42,19 @@ const CatalogSection = () => {
       { key: 'name', header: 'Товар' },
       { key: 'sku', header: 'SKU' },
       {
-        key: 'stock',
-        header: 'Остаток',
-        render: (product: Product) => `${product.stock} шт.`
+        key: 'categoryName',
+        header: 'Категория',
+        render: (product: Product) => product.categoryName ?? '—'
       },
       {
-        key: 'supplierName',
-        header: 'Поставщик',
-        render: (product: Product) => product.supplierName ?? '—'
+        key: 'variants',
+        header: 'Варианты',
+        render: (product: Product) => product.variants.length
       },
       {
-        key: 'updatedAt',
-        header: 'Обновлено',
-        render: (product: Product) => new Date(product.updatedAt).toLocaleDateString()
+        key: 'isActive',
+        header: 'Статус',
+        render: (product: Product) => (product.isActive ? 'Активен' : 'Отключён')
       }
     ],
     []

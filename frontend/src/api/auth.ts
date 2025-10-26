@@ -14,6 +14,9 @@ interface RawUserProfile {
   email: string;
   first_name?: string;
   last_name?: string;
+  title?: string;
+  timezone?: string;
+  locale?: string;
   organization?: {
     id: number;
     name: string;
@@ -66,6 +69,24 @@ export const authApi = {
     const { data } = await apiClient.get<RawUserProfile>('/auth/profile/');
     return normalizeProfile(data);
   },
+  async updateProfile(payload: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    title?: string;
+    timezone?: string;
+    locale?: string;
+  }): Promise<UserProfile> {
+    const { data } = await apiClient.patch<RawUserProfile>('/auth/profile/', {
+      first_name: payload.firstName,
+      last_name: payload.lastName,
+      email: payload.email,
+      title: payload.title,
+      timezone: payload.timezone,
+      locale: payload.locale
+    });
+    return normalizeProfile(data);
+  },
   async register(payload: RegistrationFormValues): Promise<AuthSuccessPayload> {
     const { data } = await apiClient.post<AuthSuccessResponse>('/auth/register/', {
       username: payload.username,
@@ -88,6 +109,9 @@ function normalizeProfile(profile: RawUserProfile): UserProfile {
     email: profile.email,
     firstName: profile.first_name ?? '',
     lastName: profile.last_name ?? '',
+    title: profile.title ?? '',
+    timezone: profile.timezone ?? 'UTC',
+    locale: profile.locale ?? 'ru-RU',
     organization: profile.organization
       ? {
           id: profile.organization.id,

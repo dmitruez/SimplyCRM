@@ -17,6 +17,9 @@ export interface UserProfile {
   email: string;
   firstName?: string;
   lastName?: string;
+  title?: string;
+  timezone?: string;
+  locale?: string;
   organization?: OrganizationSummary;
   featureFlags: FeatureFlag[];
 }
@@ -34,6 +37,7 @@ export interface AuthContextValue extends AuthState {
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   isFeatureEnabled: (code: string) => boolean;
+  updateProfile: (payload: Partial<Pick<UserProfile, 'firstName' | 'lastName' | 'email' | 'title' | 'timezone' | 'locale'>>) => Promise<UserProfile>;
 }
 
 export interface RegistrationFormValues {

@@ -1,22 +1,27 @@
+export interface ProductVariant {
+  id: number;
+  name: string;
+  sku: string;
+  price: number;
+  cost: number;
+  attributes: Record<string, unknown>;
+}
+
 export interface Product {
   id: number;
   sku: string;
   name: string;
   description?: string;
-  category?: string;
-  price: number;
-  currency: string;
-  stock: number;
-  supplierName?: string;
-  updatedAt: string;
+  category?: number | null;
+  categoryName?: string | null;
+  mainImageUrl?: string | null;
+  isActive: boolean;
+  variants: ProductVariant[];
 }
 
 export interface ProductFilters {
   search?: string;
-  category?: string;
-  supplierId?: number;
-  minStock?: number;
-  maxStock?: number;
+  category?: number;
   page?: number;
   pageSize?: number;
   ordering?: string;
@@ -25,6 +30,8 @@ export interface ProductFilters {
 export interface ProductListResponse {
   results: Product[];
   count: number;
+  next?: string | null;
+  previous?: string | null;
 }
 
 export interface Supplier {

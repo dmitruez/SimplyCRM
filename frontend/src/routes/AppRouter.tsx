@@ -9,6 +9,7 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { ProductsPage } from '../pages/ProductsPage';
 import { ProductDetailPage } from '../pages/ProductDetailPage';
 import { AccountPage } from '../pages/AccountPage';
+import { ApiAccessPage } from '../pages/ApiAccessPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
@@ -26,6 +27,7 @@ const AppRouter = () => (
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/api-access" element={<ApiAccessPage />} />
         <Route path="/crm/*" element={<DashboardPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

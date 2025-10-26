@@ -1,0 +1,74 @@
+.wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  gap: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.header h1 {
+  margin-bottom: 0.5rem;
+}
+
+.tokenSection,
+.methodsSection,
+.examplesSection {
+  background: white;
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 1rem;
+}
+
+.tokenBox {
+  background: rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.tokenBox code {
+  font-family: 'Roboto Mono', monospace;
+  word-break: break-all;
+  font-size: 0.95rem;
+}
+
+.methodList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.methodList li {
+  display: grid;
+  gap: 0.35rem;
+  border-left: 4px solid rgba(4, 62, 140, 0.35);
+  padding-left: 1rem;
+}
+
+.methodList strong {
+  font-size: 1rem;
+}
+
+.examplesSection pre {
+  background: rgba(15, 23, 42, 0.9);
+  color: white;
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+  }
+}

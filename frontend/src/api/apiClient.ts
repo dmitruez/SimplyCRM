@@ -183,17 +183,14 @@ apiClient.interceptors.request.use(async (config) => {
   const typedConfig = config as RequestConfigWithMeta;
   const headers = ensureHeaders(config);
   if (inMemoryToken) {
-    headers.set('Authorization', `Bearer ${inMemoryToken}`);
+    headers.set('Authorization', `Token ${inMemoryToken}`);
   }
   const method = (config.method ?? 'get').toUpperCase();
   if (!SAFE_METHODS.has(method)) {
     const token = await ensureCsrfToken();
     if (token) {
-      config.headers = {
-        ...config.headers,
-        'X-CSRFToken': token,
-        'X-Requested-With': 'XMLHttpRequest'
-      };
+      headers.set('X-CSRFToken', token);
+      headers.set('X-Requested-With', 'XMLHttpRequest');
     }
   }
   const signature = createSignature(config);

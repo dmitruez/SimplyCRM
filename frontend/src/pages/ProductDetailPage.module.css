@@ -22,6 +22,14 @@
   font-size: 0.9rem;
 }
 
+.preview {
+  max-width: 420px;
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  margin-top: 1rem;
+}
+
 .section {
   background: white;
   border-radius: 16px;

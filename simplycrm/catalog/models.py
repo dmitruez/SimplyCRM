@@ -4,6 +4,8 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 
+from simplycrm.catalog.validators import validate_image_mime
+
 
 class Category(models.Model):
     organization = models.ForeignKey("core.Organization", on_delete=models.CASCADE, related_name="categories")
@@ -36,6 +38,12 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=64)
     description = models.TextField(blank=True)
+    main_image = models.FileField(
+        upload_to="product-images/",
+        blank=True,
+        null=True,
+        validators=[validate_image_mime],
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
