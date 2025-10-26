@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from rest_framework import routers
-
 from simplycrm.automation import viewsets
+
 
 router = routers.DefaultRouter()
 router.register(r"automation-rules", viewsets.AutomationRuleViewSet, basename="automation-rule")

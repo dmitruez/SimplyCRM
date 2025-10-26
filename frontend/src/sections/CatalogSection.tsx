@@ -1,31 +1,31 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {Link} from 'react-router-dom';
 
-import { Card } from '../components/ui/Card';
-import { DataTable } from '../components/ui/DataTable';
-import { apiClient } from '../api/apiClient';
-import { catalogApi } from '../api/catalog';
-import { Product } from '../types/catalog';
+import {Card} from '../components/ui/Card';
+import {DataTable} from '../components/ui/DataTable';
+import {apiClient} from '../api/apiClient';
+import {catalogApi} from '../api/catalog';
+import {Product} from '../types/catalog';
 
 interface CatalogStats {
-  products: number;
-  variants: number;
-  suppliers: number;
+    products: number;
+    variants: number;
+    suppliers: number;
 }
 
 const fetchCatalogStats = async (): Promise<CatalogStats> => {
-  const { data } = await apiClient.get<CatalogStats>('/catalog/stats/');
-  return data;
+    const {data} = await apiClient.get<CatalogStats>('/catalog/stats/');
+    return data;
 };
 
 const CatalogSection = () => {
-  const { data, isError } = useQuery({
-    queryKey: ['catalog', 'stats'],
-    queryFn: fetchCatalogStats,
-    staleTime: 120_000,
-    retry: 1
-  });
+    const {data, isError} = useQuery({
+        queryKey: ['catalog', 'stats'],
+        queryFn: fetchCatalogStats,
+        staleTime: 120_000,
+        retry: 1
+    });
 
   const { data: topProducts = [], isError: isProductsError } = useQuery({
     queryKey: ['catalog', 'products', 'top'],
@@ -60,36 +60,36 @@ const CatalogSection = () => {
     []
   );
 
-  return (
-    <Card>
-      <h2>Каталог</h2>
-      <p>Управляйте товарами, вариантами и поставщиками.</p>
-      {isError ? (
-        <p>Данные каталога недоступны. Проверьте соединение с API.</p>
-      ) : (
-        <ul>
-          <li>Товаров: {data?.products ?? '—'}</li>
-          <li>Вариантов: {data?.variants ?? '—'}</li>
-          <li>Поставщиков: {data?.suppliers ?? '—'}</li>
-        </ul>
-      )}
-      <header>
-        <h3>Последние обновления каталога</h3>
-      </header>
-      {isProductsError ? (
-        <p>Не удалось получить список товаров.</p>
-      ) : (
-        <DataTable<Product>
-          columns={columns}
-          data={topProducts}
-          emptyMessage="Товары еще не добавлены."
-        />
-      )}
-      <div style={{ marginTop: '1.5rem' }}>
-        <Link to="/products">Перейти в каталог →</Link>
-      </div>
-    </Card>
-  );
+    return (
+        <Card>
+            <h2>Каталог</h2>
+            <p>Управляйте товарами, вариантами и поставщиками.</p>
+            {isError ? (
+                <p>Данные каталога недоступны. Проверьте соединение с API.</p>
+            ) : (
+                <ul>
+                    <li>Товаров: {data?.products ?? '—'}</li>
+                    <li>Вариантов: {data?.variants ?? '—'}</li>
+                    <li>Поставщиков: {data?.suppliers ?? '—'}</li>
+                </ul>
+            )}
+            <header>
+                <h3>Последние обновления каталога</h3>
+            </header>
+            {isProductsError ? (
+                <p>Не удалось получить список товаров.</p>
+            ) : (
+                <DataTable<Product>
+                    columns={columns}
+                    data={topProducts}
+                    emptyMessage="Товары еще не добавлены."
+                />
+            )}
+            <div style={{marginTop: '1.5rem'}}>
+                <Link to="/products">Перейти в каталог →</Link>
+            </div>
+        </Card>
+    );
 };
 
 export default CatalogSection;

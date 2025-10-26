@@ -9,7 +9,6 @@ import {
   useState
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-
 import { authApi } from '../api/auth';
 import { getAccessToken, setAccessToken } from '../api/apiClient';
 import {
@@ -20,17 +19,13 @@ import {
   UserProfile
 } from '../types/auth';
 import { notificationBus } from '../components/notifications/notificationBus';
-
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
 const initialState: AuthState = {
   status: 'idle',
   profile: null,
   accessToken: null
 };
-
 const FEATURE_FLAG_CACHE_KEY = ['auth', 'featureFlags'];
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
   const [state, setState] = useState<AuthState>(() => {
@@ -41,9 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return initialState;
   });
   const isMounted = useRef(true);
-
   type AuthStateUpdate = Partial<AuthState> | ((prev: AuthState) => AuthState);
-
   const setAuthState = useCallback((update: AuthStateUpdate) => {
     setState((prev) => {
       if (typeof update === 'function') {
@@ -52,7 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { ...prev, ...update };
     });
   }, []);
-
   const applyAuthResult = useCallback(
     (payload: { access: string; profile: UserProfile }) => {
       setAuthState({
@@ -64,7 +56,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     [queryClient]
   );
-
   const fetchProfile = useCallback(async () => {
     const token = getAccessToken();
     if (!token) {
@@ -75,7 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const profile = await authApi.getProfile();
       if (!isMounted.current) return;
-
       setAuthState((prev) => ({
         ...prev,
         profile,
@@ -97,14 +87,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [queryClient, setAuthState]);
-
   useEffect(() => {
     fetchProfile();
     return () => {
       isMounted.current = false;
     };
   }, [fetchProfile]);
-
   const login = useCallback<AuthContextValue['login']>(
     async (payload) => {
       setAuthState((prev) => ({ ...prev, status: 'loading' }));
@@ -113,7 +101,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     [applyAuthResult]
   );
-
   const loginWithGoogle = useCallback<AuthContextValue['loginWithGoogle']>(
     async (payload) => {
       setAuthState((prev) => ({ ...prev, status: 'loading' }));
@@ -122,7 +109,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     [applyAuthResult]
   );
-
   const register = useCallback(
     async (payload: RegistrationFormValues) => {
       setAuthState((prev) => ({ ...prev, status: 'loading' }));
@@ -131,13 +117,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     [applyAuthResult]
   );
-
   const logout = useCallback<AuthContextValue['logout']>(async () => {
     await authApi.logout();
     setAuthState({ status: 'unauthenticated', profile: null, accessToken: null });
     queryClient.removeQueries();
   }, [queryClient]);
-
   const refreshProfile = useCallback(async () => {
     await fetchProfile();
   }, [fetchProfile]);
@@ -174,12 +158,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         queryClient.getQueryData(FEATURE_FLAG_CACHE_KEY) ??
         state.profile?.featureFlags ??
         [];
-
       return flags.some((flag) => flag.code === code && flag.enabled);
     },
     [queryClient, state.profile?.featureFlags]
   );
-
   const value = useMemo<AuthContextValue>(
     () => ({
       ...state,
@@ -196,7 +178,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {

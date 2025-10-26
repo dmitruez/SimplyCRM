@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from rest_framework import routers
-
 from simplycrm.sales import viewsets
+
 
 router = routers.DefaultRouter()
 router.register(r"companies", viewsets.CompanyViewSet, basename="company")

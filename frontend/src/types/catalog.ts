@@ -35,6 +35,6 @@ export interface ProductListResponse {
 }
 
 export interface Supplier {
-  id: number;
-  name: string;
+    id: number;
+    name: string;
 }

@@ -1,14 +1,14 @@
 export interface FeatureFlag {
-  code: string;
-  name: string;
-  enabled: boolean;
-  description?: string;
+    code: string;
+    name: string;
+    enabled: boolean;
+    description?: string;
 }
 
 export interface OrganizationSummary {
-  id: number;
-  name: string;
-  slug: string;
+    id: number;
+    name: string;
+    slug: string;
 }
 
 export interface UserProfile {
@@ -25,9 +25,9 @@ export interface UserProfile {
 }
 
 export interface AuthState {
-  status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
-  profile: UserProfile | null;
-  accessToken: string | null;
+    status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
+    profile: UserProfile | null;
+    accessToken: string | null;
 }
 
 export interface AuthContextValue extends AuthState {
@@ -41,12 +41,12 @@ export interface AuthContextValue extends AuthState {
 }
 
 export interface RegistrationFormValues {
-  username: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  firstName: string;
-  lastName: string;
-  organizationName: string;
-  planKey?: string;
+    username: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    firstName: string;
+    lastName: string;
+    organizationName: string;
+    planKey?: string;
 }

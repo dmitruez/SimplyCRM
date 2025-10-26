@@ -7,24 +7,24 @@ from simplycrm.catalog import models
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Category
-        fields = ["id", "organization", "name", "slug", "parent"]
-        read_only_fields = ["id"]
+	class Meta:
+		model = models.Category
+		fields = ["id", "organization", "name", "slug", "parent"]
+		read_only_fields = ["id"]
 
 
 class SupplierSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Supplier
-        fields = ["id", "organization", "name", "contact_email", "phone_number", "notes"]
-        read_only_fields = ["id"]
+	class Meta:
+		model = models.Supplier
+		fields = ["id", "organization", "name", "contact_email", "phone_number", "notes"]
+		read_only_fields = ["id"]
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.ProductVariant
-        fields = ["id", "product", "name", "sku", "attributes", "price", "cost"]
-        read_only_fields = ["id"]
+	class Meta:
+		model = models.ProductVariant
+		fields = ["id", "product", "name", "sku", "attributes", "price", "cost"]
+		read_only_fields = ["id"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -61,14 +61,14 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class InventoryLotSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.InventoryLot
-        fields = ["id", "variant", "supplier", "quantity", "received_at", "expires_at", "location"]
-        read_only_fields = ["id"]
+	class Meta:
+		model = models.InventoryLot
+		fields = ["id", "variant", "supplier", "quantity", "received_at", "expires_at", "location"]
+		read_only_fields = ["id"]
 
 
 class PriceHistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.PriceHistory
-        fields = ["id", "variant", "price", "currency", "recorded_at", "recorded_by"]
-        read_only_fields = ["id", "recorded_at"]
+	class Meta:
+		model = models.PriceHistory
+		fields = ["id", "variant", "price", "currency", "recorded_at", "recorded_by"]
+		read_only_fields = ["id", "recorded_at"]

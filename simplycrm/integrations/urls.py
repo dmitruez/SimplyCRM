@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from rest_framework import routers
-
 from simplycrm.integrations import viewsets
+
 
 router = routers.DefaultRouter()
 router.register(r"api-keys", viewsets.ApiKeyViewSet, basename="api-key")

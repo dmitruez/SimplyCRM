@@ -1,25 +1,25 @@
 .wrapper {
-  display: grid;
-  gap: 2rem;
+    display: grid;
+    gap: 2rem;
 }
 
 .header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
 }
 
 .meta span {
-  background: rgba(4, 62, 140, 0.08);
-  padding: 0.6rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
+    background: rgba(4, 62, 140, 0.08);
+    padding: 0.6rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
 }
 
 .preview {
@@ -31,24 +31,24 @@
 }
 
 .section {
-  background: white;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: var(--shadow-md);
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
 }
 
 .section h2 {
-  margin-bottom: 1rem;
+    margin-bottom: 1rem;
 }
 
 .notesList {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1rem;
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
 }
 
 .note {
-  padding: 0.9rem 1rem;
-  border-radius: 12px;
-  background: rgba(4, 62, 140, 0.05);
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: rgba(4, 62, 140, 0.05);
 }

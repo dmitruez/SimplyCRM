@@ -1,103 +1,103 @@
-import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Helmet } from 'react-helmet-async';
+import {useMemo} from 'react';
+import {useParams} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
+import {Helmet} from 'react-helmet-async';
 
 import styles from './ProductDetailPage.module.css';
-import { catalogApi } from '../api/catalog';
-import { salesApi } from '../api/sales';
-import { Deal, DealNote } from '../types/sales';
-import { DataTable, StatusBadge } from '../components/ui/DataTable';
+import {catalogApi} from '../api/catalog';
+import {salesApi} from '../api/sales';
+import {Deal} from '../types/sales';
+import {DataTable, StatusBadge} from '../components/ui/DataTable';
 
 const formatProbability = (value: number) => {
-  const normalized = value <= 1 ? value * 100 : value;
-  return `${Math.round(normalized)}%`;
+    const normalized = value <= 1 ? value * 100 : value;
+    return `${Math.round(normalized)}%`;
 };
 
 export const ProductDetailPage = () => {
-  const params = useParams();
-  const productId = Number.parseInt(params.productId ?? '', 10);
+    const params = useParams();
+    const productId = Number.parseInt(params.productId ?? '', 10);
 
-  const {
-    data: product,
-    isError,
-    isLoading
-  } = useQuery({
-    queryKey: ['catalog', 'product', productId],
-    queryFn: () => catalogApi.getProduct(productId),
-    enabled: Number.isFinite(productId)
-  });
+    const {
+        data: product,
+        isError,
+        isLoading
+    } = useQuery({
+        queryKey: ['catalog', 'product', productId],
+        queryFn: () => catalogApi.getProduct(productId),
+        enabled: Number.isFinite(productId)
+    });
 
-  const { data: deals = [] } = useQuery({
-    queryKey: ['sales', 'deals', 'recent'],
-    queryFn: () => salesApi.listDeals({ ordering: '-close_date' })
-  });
+    const {data: deals = []} = useQuery({
+        queryKey: ['sales', 'deals', 'recent'],
+        queryFn: () => salesApi.listDeals({ordering: '-close_date'})
+    });
 
-  const { data: notes = [] } = useQuery({
-    queryKey: ['sales', 'notes', 'all'],
-    queryFn: () => salesApi.listNotes()
-  });
+    const {data: notes = []} = useQuery({
+        queryKey: ['sales', 'notes', 'all'],
+        queryFn: () => salesApi.listNotes()
+    });
 
-  const amountFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat('ru-RU', {
-        style: 'currency',
-        currency: 'USD'
-      }),
-    []
-  );
-
-  const relatedNotes = useMemo(() => {
-    return notes.filter(
-      (note) =>
-        note.relatedObjectType.toLowerCase() === 'product' &&
-        note.relatedObjectId === productId
+    const amountFormatter = useMemo(
+        () =>
+            new Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'USD'
+            }),
+        []
     );
-  }, [notes, productId]);
 
-  const dealColumns = useMemo(
-    () => [
-      { key: 'name', header: 'Сделка' },
-      { key: 'pipelineName', header: 'Воронка' },
-      {
-        key: 'stageName',
-        header: 'Этап',
-        render: (deal: Deal) => <StatusBadge status={deal.stageName} />
-      },
-      {
-        key: 'amount',
-        header: 'Сумма',
-        render: (deal: Deal) => amountFormatter.format(deal.amount)
-      },
-      {
-        key: 'ownerName',
-        header: 'Ответственный'
-      },
-      {
-        key: 'closeDate',
-        header: 'Закрытие',
-        render: (deal: Deal) => (deal.closeDate ? new Date(deal.closeDate).toLocaleDateString() : '—')
-      },
-      {
-        key: 'probability',
-        header: 'Вероятность',
-        render: (deal: Deal) => formatProbability(deal.probability)
-      }
-    ],
-    [amountFormatter]
-  );
+    const relatedNotes = useMemo(() => {
+        return notes.filter(
+            (note) =>
+                note.relatedObjectType.toLowerCase() === 'product' &&
+                note.relatedObjectId === productId
+        );
+    }, [notes, productId]);
 
-  if (!Number.isFinite(productId)) {
-    return <p>Неверный идентификатор товара.</p>;
-  }
+    const dealColumns = useMemo(
+        () => [
+            {key: 'name', header: 'Сделка'},
+            {key: 'pipelineName', header: 'Воронка'},
+            {
+                key: 'stageName',
+                header: 'Этап',
+                render: (deal: Deal) => <StatusBadge status={deal.stageName}/>
+            },
+            {
+                key: 'amount',
+                header: 'Сумма',
+                render: (deal: Deal) => amountFormatter.format(deal.amount)
+            },
+            {
+                key: 'ownerName',
+                header: 'Ответственный'
+            },
+            {
+                key: 'closeDate',
+                header: 'Закрытие',
+                render: (deal: Deal) => (deal.closeDate ? new Date(deal.closeDate).toLocaleDateString() : '—')
+            },
+            {
+                key: 'probability',
+                header: 'Вероятность',
+                render: (deal: Deal) => formatProbability(deal.probability)
+            }
+        ],
+        [amountFormatter]
+    );
 
-  if (isLoading) {
-    return <p>Загрузка информации о товаре…</p>;
-  }
+    if (!Number.isFinite(productId)) {
+        return <p>Неверный идентификатор товара.</p>;
+    }
 
-  if (isError || !product) {
-    return <p>Не удалось загрузить товар. Попробуйте обновить страницу.</p>;
-  }
+    if (isLoading) {
+        return <p>Загрузка информации о товаре…</p>;
+    }
+
+    if (isError || !product) {
+        return <p>Не удалось загрузить товар. Попробуйте обновить страницу.</p>;
+    }
 
   const primaryVariant = product.variants[0];
   const priceLabel = primaryVariant ? `${primaryVariant.price.toLocaleString('ru-RU')} ₽` : '—';

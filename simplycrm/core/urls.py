@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from django.urls import path
 from rest_framework import routers
-
 from simplycrm.core import viewsets
 from simplycrm.core.views import (
     GoogleAuthView,
@@ -16,6 +15,7 @@ from simplycrm.core.views import (
     ChangeSubscriptionPlanView,
     ExcelDataImportView,
 )
+
 
 router = routers.DefaultRouter()
 router.register(r"organizations", viewsets.OrganizationViewSet)

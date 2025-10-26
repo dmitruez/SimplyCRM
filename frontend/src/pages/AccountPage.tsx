@@ -75,9 +75,9 @@ export const AccountPage = () => {
     }
   });
 
-  if (!isAuthenticated || !profile) {
-    return <p>Для просмотра профиля необходимо войти.</p>;
-  }
+    if (!isAuthenticated || !profile) {
+        return <p>Для просмотра профиля необходимо войти.</p>;
+    }
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
