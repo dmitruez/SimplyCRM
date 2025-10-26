@@ -1,6 +1,9 @@
 """Serializers for catalog models."""
 from __future__ import annotations
 
+import secrets
+import string
+
 from rest_framework import serializers
 
 from simplycrm.catalog import models
@@ -28,6 +31,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    sku = serializers.CharField(required=False, allow_blank=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
     main_image = serializers.FileField(required=False, allow_null=True, write_only=True)
     main_image_url = serializers.SerializerMethodField()
@@ -58,6 +62,38 @@ class ProductSerializer(serializers.ModelSerializer):
         if request is not None:
             return request.build_absolute_uri(url)
         return url
+
+    def create(self, validated_data):  # type: ignore[override]
+        sku = (validated_data.get("sku") or "").strip()
+        if not sku:
+            organization = validated_data.get("organization")
+            if organization is None:
+                raise serializers.ValidationError({
+                    "sku": "Не удалось определить организацию для генерации SKU."
+                })
+            validated_data["sku"] = self._generate_unique_sku(organization)
+        else:
+            validated_data["sku"] = sku
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):  # type: ignore[override]
+        if "sku" in validated_data:
+            sku = (validated_data.get("sku") or "").strip()
+            if not sku:
+                raise serializers.ValidationError({"sku": "SKU не может быть пустым."})
+            validated_data["sku"] = sku
+        return super().update(instance, validated_data)
+
+    @staticmethod
+    def _generate_unique_sku(organization, length: int = 10, attempts: int = 20) -> str:
+        alphabet = string.ascii_uppercase + string.digits
+        for _ in range(attempts):
+            candidate = "".join(secrets.choice(alphabet) for _ in range(length))
+            if not models.Product.objects.filter(organization=organization, sku=candidate).exists():
+                return candidate
+        raise serializers.ValidationError({
+            "sku": "Не удалось автоматически сгенерировать уникальный SKU. Укажите его вручную."
+        })
 
 
 class InventoryLotSerializer(serializers.ModelSerializer):

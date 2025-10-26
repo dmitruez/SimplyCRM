@@ -134,37 +134,37 @@ class ProfileView(APIView):
 		serializer = UserProfileSerializer(request.user)
 		return Response(serializer.data)
 
-    def patch(self, request, *args, **kwargs):  # type: ignore[override]
-        serializer = UserProfileUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=True,
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        profile = UserProfileSerializer(request.user)
-        return Response(profile.data)
+	def patch(self, request, *args, **kwargs):  # type: ignore[override]
+		serializer = UserProfileUpdateSerializer(
+			request.user,
+			data=request.data,
+			partial=True,
+		)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		profile = UserProfileSerializer(request.user)
+		return Response(profile.data)
 
-    def put(self, request, *args, **kwargs):  # type: ignore[override]
-        serializer = UserProfileUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=False,
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        profile = UserProfileSerializer(request.user)
-        return Response(profile.data)
+	def put(self, request, *args, **kwargs):  # type: ignore[override]
+		serializer = UserProfileUpdateSerializer(
+			request.user,
+			data=request.data,
+			partial=False,
+		)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		profile = UserProfileSerializer(request.user)
+		return Response(profile.data)
 
 
 PLAN_API_CATALOG: dict[str, list[dict[str, str]]] = {
     core_models.SubscriptionPlan.FREE: [
-        {"method": "GET /api/catalog/products/", "description": "Просмотр каталога товаров"},
+        {"method": "GET /api/products/", "description": "Просмотр каталога товаров"},
         {"method": "GET /api/sales/pipelines/", "description": "Доступ к базовым воронкам продаж"},
         {"method": "POST /api/assistant/chat/", "description": "10 запросов к AI-ассистенту"},
     ],
     core_models.SubscriptionPlan.PRO: [
-        {"method": "POST /api/catalog/products/", "description": "Создание и обновление товаров"},
+        {"method": "POST /api/products/", "description": "Создание и обновление товаров"},
         {"method": "GET /api/sales/orders/", "description": "Работа с заказами и счетами"},
         {"method": "GET /api/analytics/forecasts/", "description": "Прогноз продаж и спроса"},
         {"method": "POST /api/assistant/chat/", "description": "Безлимитные подсказки AI-ассистента"},
