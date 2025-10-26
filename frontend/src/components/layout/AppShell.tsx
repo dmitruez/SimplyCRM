@@ -14,8 +14,9 @@ const navLinkClassName = ({isActive}: { isActive: boolean }) =>
     isActive ? clsx(styles.navLink, styles.active) : styles.navLink;
 
 export const AppShell = ({children}: AppShellProps) => {
-    const {status, logout} = useAuthContext();
+    const {status, logout, profile} = useAuthContext();
     const isAuthenticated = status === 'authenticated';
+    const isAdmin = profile?.featureFlags?.some((flag) => flag.code === 'admin.panel' && flag.enabled);
 
     return (
         <div className={styles.wrapper}>
@@ -41,6 +42,11 @@ export const AppShell = ({children}: AppShellProps) => {
                     {isAuthenticated ? (
                         <NavLink to="/crm" className={navLinkClassName}>
                             CRM
+                        </NavLink>
+                    ) : null}
+                    {isAuthenticated && isAdmin ? (
+                        <NavLink to="/admin" className={navLinkClassName}>
+                            Админ
                         </NavLink>
                     ) : null}
                     {isAuthenticated ? (

@@ -1,14 +1,39 @@
 .card {
-    background: var(--color-surface);
+    position: relative;
+    background: rgba(255, 255, 255, 0.92);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(15, 23, 42, 0.08);
     display: grid;
     gap: var(--space-sm);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    inset: -40% 40% auto -40%;
+    height: 140px;
+    background: linear-gradient(120deg, rgba(14, 95, 216, 0.18), transparent 60%);
+    opacity: 0.35;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(14, 95, 216, 0.18);
+}
+
+.card:hover::before {
+    opacity: 0.55;
 }
 
 .subdued {
-    background: var(--color-surface-muted);
+    background: rgba(242, 246, 255, 0.85);
     box-shadow: none;
 }
