@@ -55,7 +55,7 @@ export const catalogApi = {
   async listProducts(filters: ProductFilters = {}): Promise<ProductListResponse> {
     const { pageSize, ...rest } = filters;
     const params = pageSize ? { ...rest, page_size: pageSize } : rest;
-    const { data } = await apiClient.get<RawProductListResponse>('/catalog/products/', {
+    const { data } = await apiClient.get<RawProductListResponse>('/products/', {
       params
     });
     return {
@@ -67,25 +67,27 @@ export const catalogApi = {
   },
 
   async getProduct(productId: number | string): Promise<Product> {
-    const { data } = await apiClient.get<RawProduct>(`/catalog/products/${productId}/`);
+    const { data } = await apiClient.get<RawProduct>(`/products/${productId}/`);
     return normalizeProduct(data);
   },
 
   async listSuppliers(): Promise<Supplier[]> {
-    const { data } = await apiClient.get<Supplier[]>('/catalog/suppliers/');
+    const { data } = await apiClient.get<Supplier[]>('/suppliers/');
     return data;
   },
 
   async createProduct(payload: {
     name: string;
-    sku: string;
+    sku?: string;
     description?: string;
     category?: number | null;
     image?: File | null;
   }): Promise<Product> {
     const formData = new FormData();
     formData.append('name', payload.name);
-    formData.append('sku', payload.sku);
+    if (payload.sku && payload.sku.trim().length > 0) {
+      formData.append('sku', payload.sku.trim());
+    }
     if (payload.description) {
       formData.append('description', payload.description);
     }
@@ -96,7 +98,7 @@ export const catalogApi = {
       formData.append('main_image', payload.image);
     }
 
-    const { data } = await apiClient.post<RawProduct>('/catalog/products/', formData, {
+    const { data } = await apiClient.post<RawProduct>('/products/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return normalizeProduct(data);

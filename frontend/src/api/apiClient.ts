@@ -175,19 +175,23 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
-  const typedConfig = config as RequestConfigWithMeta;
-  const headers = ensureHeaders(config);
-  if (inMemoryToken) {
-    headers.set('Authorization', `Token ${inMemoryToken}`);
-  }
-  const method = (config.method ?? 'get').toUpperCase();
-  if (!SAFE_METHODS.has(method)) {
-    const token = await ensureCsrfToken();
-    if (token) {
-      headers.set('X-CSRFToken', token);
-      headers.set('X-Requested-With', 'XMLHttpRequest');
+    const typedConfig = config as RequestConfigWithMeta;
+    const headers = ensureHeaders(config);
+    if (inMemoryToken) {
+        headers.set('Authorization', `Token ${inMemoryToken}`);
     }
-    typedConfig.metadata = {retryCount: 0, signature};
+    const method = (config.method ?? 'get').toUpperCase();
+    if (!SAFE_METHODS.has(method)) {
+        const token = await ensureCsrfToken();
+        if (token) {
+            headers.set('X-CSRFToken', token);
+            headers.set('X-Requested-With', 'XMLHttpRequest');
+        }
+    }
+    const signature = createSignature(config);
+    typedConfig.metadata = signature
+        ? {retryCount: 0, signature}
+        : {retryCount: 0};
     return config;
 });
 
