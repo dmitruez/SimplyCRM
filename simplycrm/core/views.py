@@ -145,37 +145,47 @@ class ProfileView(APIView):
 		profile = UserProfileSerializer(request.user)
 		return Response(profile.data)
 
+	def patch(self, request, *args, **kwargs):  # type: ignore[override]
+		serializer = UserProfileUpdateSerializer(
+			request.user,
+			data=request.data,
+			partial=True,
+		)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		profile = UserProfileSerializer(request.user)
+		return Response(profile.data)
 
-def put(self, request, *args, **kwargs):  # type: ignore[override]
-	serializer = UserProfileUpdateSerializer(
-		request.user,
-		data=request.data,
-		partial=False,
-	)
-	serializer.is_valid(raise_exception=True)
-	serializer.save()
-	profile = UserProfileSerializer(request.user)
-	return Response(profile.data)
+	def put(self, request, *args, **kwargs):  # type: ignore[override]
+		serializer = UserProfileUpdateSerializer(
+			request.user,
+			data=request.data,
+			partial=False,
+		)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		profile = UserProfileSerializer(request.user)
+		return Response(profile.data)
 
 
 PLAN_API_CATALOG: dict[str, list[dict[str, str]]] = {
-	core_models.SubscriptionPlan.FREE: [
-		{"method": "GET /api/products/", "description": "Просмотр каталога товаров"},
-		{"method": "GET /api/sales/pipelines/", "description": "Доступ к базовым воронкам продаж"},
-		{"method": "POST /api/assistant/chat/", "description": "10 запросов к AI-ассистенту"},
-	],
-	core_models.SubscriptionPlan.PRO: [
-		{"method": "POST /api/products/", "description": "Создание и обновление товаров"},
-		{"method": "GET /api/sales/orders/", "description": "Работа с заказами и счетами"},
-		{"method": "GET /api/analytics/forecasts/", "description": "Прогноз продаж и спроса"},
-		{"method": "POST /api/assistant/chat/", "description": "Безлимитные подсказки AI-ассистента"},
-	],
-	core_models.SubscriptionPlan.ENTERPRISE: [
-		{"method": "POST /api/automation/rules/", "description": "Настройка автоматизаций и сценариев"},
-		{"method": "POST /api/integrations/webhooks/", "description": "Вебхуки и управление API-ключами"},
-		{"method": "GET /api/analytics/insights/", "description": "Глубокая аналитика и рекомендации"},
-		{"method": "POST /api/assistant/chat/", "description": "Инсайты на основе данных по требованию"},
-	],
+    core_models.SubscriptionPlan.FREE: [
+        {"method": "GET /api/products/", "description": "Просмотр каталога товаров"},
+        {"method": "GET /api/sales/pipelines/", "description": "Доступ к базовым воронкам продаж"},
+        {"method": "POST /api/assistant/chat/", "description": "10 запросов к AI-ассистенту"},
+    ],
+    core_models.SubscriptionPlan.PRO: [
+        {"method": "POST /api/products/", "description": "Создание и обновление товаров"},
+        {"method": "GET /api/sales/orders/", "description": "Работа с заказами и счетами"},
+        {"method": "GET /api/analytics/forecasts/", "description": "Прогноз продаж и спроса"},
+        {"method": "POST /api/assistant/chat/", "description": "Безлимитные подсказки AI-ассистента"},
+    ],
+    core_models.SubscriptionPlan.ENTERPRISE: [
+        {"method": "POST /api/automation/rules/", "description": "Настройка автоматизаций и сценариев"},
+        {"method": "POST /api/integrations/webhooks/", "description": "Вебхуки и управление API-ключами"},
+        {"method": "GET /api/analytics/insights/", "description": "Глубокая аналитика и рекомендации"},
+        {"method": "POST /api/assistant/chat/", "description": "Инсайты на основе данных по требованию"},
+    ],
 }
 
 
