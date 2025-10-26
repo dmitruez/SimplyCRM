@@ -26,3 +26,31 @@ export interface PurchaseRecord {
     contactName?: string;
     orderedAt: string | null;
 }
+
+export interface InvoiceRecord {
+    id: number;
+    orderId: number;
+    status: string;
+    totalAmount: number;
+    issuedAt: string;
+    dueDate: string | null;
+}
+
+export interface PaymentRecord {
+    id: number;
+    invoiceId: number;
+    amount: number;
+    provider: string;
+    processedAt: string | null;
+    transactionReference?: string | null;
+}
+
+export interface ShipmentRecord {
+    id: number;
+    orderId: number;
+    carrier: string;
+    trackingNumber: string;
+    status: string;
+    shippedAt: string | null;
+    deliveredAt: string | null;
+}
