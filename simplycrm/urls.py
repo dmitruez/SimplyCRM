@@ -8,7 +8,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework import routers
 from simplycrm.analytics.urls import router as analytics_router
-from simplycrm.analytics.views import AnalyticsDashboardView
+from simplycrm.analytics.views import AnalyticsDashboardView, AnalyticsOverviewView
 from simplycrm.assistant.urls import router as assistant_router
 from simplycrm.automation.urls import router as automation_router
 from simplycrm.catalog.urls import router as catalog_router
@@ -58,6 +58,7 @@ urlpatterns = [
         path("api/billing/change-plan/", ChangeSubscriptionPlanView.as_view(), name="billing-change-plan"),
         path("api/data-import/", ExcelDataImportView.as_view(), name="data-import"),
         path("api/dashboard/overview/", DashboardOverviewView.as_view(), name="dashboard-overview"),
+        path("api/analytics/overview/", AnalyticsOverviewView.as_view(), name="analytics-overview"),
 	path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
 	path(
 		"api/docs/",
