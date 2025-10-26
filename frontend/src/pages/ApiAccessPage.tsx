@@ -79,7 +79,7 @@ export const ApiAccessPage = () => {
           <section className={styles.examplesSection}>
             <h2>Пример запроса</h2>
             <pre>
-{`curl -X GET https://your-domain/api/catalog/products/ \
+{`curl -X GET https://your-domain/api/products/ \
   -H "Authorization: Token ${data.apiToken}" \
   -H "Accept: application/json"`}
             </pre>

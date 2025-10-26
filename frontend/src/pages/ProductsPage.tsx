@@ -24,6 +24,9 @@ export const ProductsPage = () => {
     description: '',
     image: null as File | null
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
   const queryClient = useQueryClient();
 
@@ -44,6 +47,7 @@ export const ProductsPage = () => {
         message: 'Новый товар появился в каталоге.'
       });
       setNewProduct({ name: '', sku: '', description: '', image: null });
+      setImagePreview(null);
       await queryClient.invalidateQueries({ queryKey: ['catalog', 'products', 'list'] });
     },
     onError: () => {
@@ -107,23 +111,77 @@ export const ProductsPage = () => {
   };
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    setNewProduct((prev) => ({ ...prev, image: file }));
+    const inputElement = event.target;
+    const file = inputElement.files?.[0] ?? null;
+
+    if (!file) {
+      setNewProduct((prev) => ({ ...prev, image: null }));
+      setImagePreview(null);
+      return;
+    }
+
+    if (!allowedImageTypes.includes(file.type)) {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Неподдерживаемый формат',
+        message: 'Загрузите изображение в формате JPEG, PNG или WebP.'
+      });
+      inputElement.value = '';
+      setNewProduct((prev) => ({ ...prev, image: null }));
+      setImagePreview(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        return;
+      }
+
+      const image = new Image();
+      image.onload = () => {
+        if (image.width > 500 || image.height > 500) {
+          notificationBus.publish({
+            type: 'error',
+            title: 'Изображение слишком большое',
+            message: 'Размер изображения не должен превышать 500x500 пикселей.'
+          });
+          inputElement.value = '';
+          setNewProduct((prev) => ({ ...prev, image: null }));
+          setImagePreview(null);
+          return;
+        }
+        setNewProduct((prev) => ({ ...prev, image: file }));
+        setImagePreview(reader.result as string);
+      };
+      image.onerror = () => {
+        notificationBus.publish({
+          type: 'error',
+          title: 'Ошибка загрузки',
+          message: 'Не удалось прочитать изображение. Попробуйте другой файл.'
+        });
+        inputElement.value = '';
+        setNewProduct((prev) => ({ ...prev, image: null }));
+        setImagePreview(null);
+      };
+      image.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleCreateProduct = (event: FormEvent) => {
     event.preventDefault();
-    if (!newProduct.name || !newProduct.sku) {
+    if (!newProduct.name) {
       notificationBus.publish({
         type: 'warning',
         title: 'Заполните обязательные поля',
-        message: 'Название и SKU товара обязательны.'
+        message: 'Название товара обязательно.'
       });
       return;
     }
     createProductMutation.mutate({
       name: newProduct.name,
-      sku: newProduct.sku,
+      sku: newProduct.sku?.trim() || undefined,
       description: newProduct.description,
       image: newProduct.image
     });
@@ -177,12 +235,12 @@ export const ProductsPage = () => {
             />
           </label>
           <label>
-            SKU
+            SKU (необязательно)
             <input
               name="sku"
               value={newProduct.sku}
               onChange={handleNewProductChange}
-              required
+              placeholder="Если не заполнить, сгенерируем автоматически"
             />
           </label>
           <label className={styles.fullWidth}>
@@ -196,8 +254,14 @@ export const ProductsPage = () => {
           </label>
           <label className={styles.fullWidth}>
             Главное изображение
-            <input type="file" accept="image/*" onChange={handleImageChange} />
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
+            <span className={styles.helpText}>До 500×500 пикселей, форматы: JPG, PNG или WebP.</span>
           </label>
+          {imagePreview ? (
+            <div className={styles.previewWrapper}>
+              <img src={imagePreview} alt="Предпросмотр товара" className={styles.previewImage} />
+            </div>
+          ) : null}
           <div className={styles.formActions}>
             <Button type="submit" disabled={createProductMutation.isPending}>
               Добавить товар
