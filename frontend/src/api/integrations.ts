@@ -97,12 +97,12 @@ const normalizeImportJob = (raw: RawImportJob): ImportJobRecord => ({
 
 export const integrationsApi = {
   async listApiKeys(): Promise<ApiKeyRecord[]> {
-    const { data } = await apiClient.get<RawApiKey[]>('/integrations/api-keys/');
+    const { data } = await apiClient.get<RawApiKey[]>('/api/api-keys/');
     return data.map(normalizeApiKey);
   },
 
   async createApiKey(payload: { name: string; key: string; permissions?: string[] }): Promise<ApiKeyRecord> {
-    const { data } = await apiClient.post<RawApiKey>('/integrations/api-keys/', {
+    const { data } = await apiClient.post<RawApiKey>('/api/api-keys/', {
       name: payload.name,
       key: payload.key,
       permissions: payload.permissions ?? []
@@ -111,12 +111,12 @@ export const integrationsApi = {
   },
 
   async listWebhooks(): Promise<WebhookSubscriptionRecord[]> {
-    const { data } = await apiClient.get<RawWebhookSubscription[]>('/integrations/webhook-subscriptions/');
+    const { data } = await apiClient.get<RawWebhookSubscription[]>('/api/webhook-subscriptions/');
     return data.map(normalizeWebhook);
   },
 
   async createWebhook(payload: { url: string; eventTypes: string[]; secret?: string }): Promise<WebhookSubscriptionRecord> {
-    const { data } = await apiClient.post<RawWebhookSubscription>('/integrations/webhook-subscriptions/', {
+    const { data } = await apiClient.post<RawWebhookSubscription>('/api/webhook-subscriptions/', {
       url: payload.url,
       event_types: payload.eventTypes,
       secret: payload.secret ?? '',
@@ -126,12 +126,12 @@ export const integrationsApi = {
   },
 
   async listConnections(): Promise<IntegrationConnectionRecord[]> {
-    const { data } = await apiClient.get<RawIntegrationConnection[]>('/integrations/integration-connections/');
+    const { data } = await apiClient.get<RawIntegrationConnection[]>('/api/integration-connections/');
     return data.map(normalizeConnection);
   },
 
   async createConnection(payload: { provider: string; config?: Record<string, unknown>; status?: string }): Promise<IntegrationConnectionRecord> {
-    const { data } = await apiClient.post<RawIntegrationConnection>('/integrations/integration-connections/', {
+    const { data } = await apiClient.post<RawIntegrationConnection>('/api/integration-connections/', {
       provider: payload.provider,
       config: payload.config ?? {},
       status: payload.status ?? 'connected'
@@ -140,17 +140,17 @@ export const integrationsApi = {
   },
 
   async listLogs(): Promise<IntegrationLogRecord[]> {
-    const { data } = await apiClient.get<RawIntegrationLog[]>('/integrations/integration-logs/');
+    const { data } = await apiClient.get<RawIntegrationLog[]>('/api/integration-logs/');
     return data.map(normalizeLog);
   },
 
   async listImportJobs(): Promise<ImportJobRecord[]> {
-    const { data } = await apiClient.get<RawImportJob[]>('/integrations/import-jobs/');
+    const { data } = await apiClient.get<RawImportJob[]>('/api/import-jobs/');
     return data.map(normalizeImportJob);
   },
 
   async createImportJob(payload: { dataSource: string; status?: string; statistics?: Record<string, unknown> }): Promise<ImportJobRecord> {
-    const { data } = await apiClient.post<RawImportJob>('/integrations/import-jobs/', {
+    const { data } = await apiClient.post<RawImportJob>('/api/import-jobs/', {
       data_source: payload.dataSource,
       status: payload.status ?? 'pending',
       statistics: payload.statistics ?? {}

@@ -100,7 +100,7 @@ const normalizeWebhook = (raw: RawWebhookEvent): WebhookEventRecord => ({
 
 export const automationApi = {
   async listRules(): Promise<AutomationRule[]> {
-    const { data } = await apiClient.get<RawAutomationRule[]>('/automation/rules/');
+    const { data } = await apiClient.get<RawAutomationRule[]>('/api/automation-rules/');
     return data.map(normalizeRule);
   },
 
@@ -112,7 +112,7 @@ export const automationApi = {
     actions?: unknown[];
     isActive?: boolean;
   }): Promise<AutomationRule> {
-    const { data } = await apiClient.post<RawAutomationRule>('/automation/rules/', {
+    const { data } = await apiClient.post<RawAutomationRule>('/api/automation-rules/', {
       name: payload.name,
       trigger: payload.trigger,
       description: payload.description,
@@ -124,7 +124,7 @@ export const automationApi = {
   },
 
   async listCampaigns(): Promise<Campaign[]> {
-    const { data } = await apiClient.get<RawCampaign[]>('/automation/campaigns/');
+    const { data } = await apiClient.get<RawCampaign[]>('/api/campaigns/');
     return data.map(normalizeCampaign);
   },
 
@@ -136,7 +136,7 @@ export const automationApi = {
     startAt?: string | null;
     endAt?: string | null;
   }): Promise<Campaign> {
-    const { data } = await apiClient.post<RawCampaign>('/automation/campaigns/', {
+    const { data } = await apiClient.post<RawCampaign>('/api/campaigns/', {
       name: payload.name,
       description: payload.description,
       status: payload.status ?? 'draft',
@@ -148,12 +148,12 @@ export const automationApi = {
   },
 
   async listNotifications(): Promise<NotificationRecord[]> {
-    const { data } = await apiClient.get<RawNotification[]>('/automation/notifications/');
+    const { data } = await apiClient.get<RawNotification[]>('/api/notifications/');
     return data.map(normalizeNotification);
   },
 
   async listWebhooks(): Promise<WebhookEventRecord[]> {
-    const { data } = await apiClient.get<RawWebhookEvent[]>('/automation/webhook-events/');
+    const { data } = await apiClient.get<RawWebhookEvent[]>('/api/webhook-events/');
     return data.map(normalizeWebhook);
   },
 
@@ -162,7 +162,7 @@ export const automationApi = {
     eventType: string;
     payload?: Record<string, unknown>;
   }): Promise<WebhookEventRecord> {
-    const { data } = await apiClient.post<RawWebhookEvent>('/automation/webhook-events/', {
+    const { data } = await apiClient.post<RawWebhookEvent>('/api/webhook-events/', {
       url: payload.url,
       event_type: payload.eventType,
       payload: payload.payload ?? {},
