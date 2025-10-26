@@ -187,8 +187,10 @@ apiClient.interceptors.request.use(async (config) => {
       headers.set('X-CSRFToken', token);
       headers.set('X-Requested-With', 'XMLHttpRequest');
     }
-    typedConfig.metadata = {retryCount: 0, signature};
-    return config;
+  }
+  const signature = createSignature(config);
+  typedConfig.metadata = { retryCount: 0, signature };
+  return config;
 });
 
 apiClient.interceptors.response.use(

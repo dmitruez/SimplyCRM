@@ -5,35 +5,33 @@ import importlib
 from datetime import date, timedelta
 from decimal import Decimal
 
+import pandas as pd
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.db.models.functions import Coalesce
 from django.middleware.csrf import get_token
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
+from django.utils.translation import gettext_lazy as _
 from rest_framework import generics, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-import pandas as pd
-
 from simplycrm.catalog import models as catalog_models
 from simplycrm.core import models as core_models
 from simplycrm.core.security import LoginAttemptTracker
 from simplycrm.core.serializers import (
-    AuthTokenSerializer,
-    ExcelImportSerializer,
-    GoogleAuthSerializer,
-    RegistrationSerializer,
-    SubscriptionPlanSerializer,
-    SubscriptionSerializer,
-    UserProfileSerializer,
-    UserProfileUpdateSerializer,
-    EmptySerializer,
+	AuthTokenSerializer,
+	ExcelImportSerializer,
+	GoogleAuthSerializer,
+	RegistrationSerializer,
+	SubscriptionPlanSerializer,
+	SubscriptionSerializer,
+	UserProfileSerializer,
+	UserProfileUpdateSerializer,
+	EmptySerializer,
 )
 from simplycrm.core.services import provision_google_account
 from simplycrm.core.throttling import LoginRateThrottle, RegistrationRateThrottle
@@ -133,259 +131,263 @@ class ProfileView(APIView):
 	def get(self, request, *args, **kwargs):  # type: ignore[override]
 		serializer = UserProfileSerializer(request.user)
 		return Response(serializer.data)
+	
+	def patch(self, request, *args, **kwargs):  # type: ignore[override]
+		serializer = UserProfileUpdateSerializer(
+			request.user,
+			data=request.data,
+			partial=True,
+		)
+		serializer.is_valid(raise_exception=True)
+		serializer.save()
+		profile = UserProfileSerializer(request.user)
+		return Response(profile.data)
 
-    def patch(self, request, *args, **kwargs):  # type: ignore[override]
-        serializer = UserProfileUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=True,
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        profile = UserProfileSerializer(request.user)
-        return Response(profile.data)
 
-    def put(self, request, *args, **kwargs):  # type: ignore[override]
-        serializer = UserProfileUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=False,
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        profile = UserProfileSerializer(request.user)
-        return Response(profile.data)
+def put(self, request, *args, **kwargs):  # type: ignore[override]
+	serializer = UserProfileUpdateSerializer(
+		request.user,
+		data=request.data,
+		partial=False,
+	)
+	serializer.is_valid(raise_exception=True)
+	serializer.save()
+	profile = UserProfileSerializer(request.user)
+	return Response(profile.data)
 
 
 PLAN_API_CATALOG: dict[str, list[dict[str, str]]] = {
-    core_models.SubscriptionPlan.FREE: [
-        {"method": "GET /api/catalog/products/", "description": "Просмотр каталога товаров"},
-        {"method": "GET /api/sales/pipelines/", "description": "Доступ к базовым воронкам продаж"},
-        {"method": "POST /api/assistant/chat/", "description": "10 запросов к AI-ассистенту"},
-    ],
-    core_models.SubscriptionPlan.PRO: [
-        {"method": "POST /api/catalog/products/", "description": "Создание и обновление товаров"},
-        {"method": "GET /api/sales/orders/", "description": "Работа с заказами и счетами"},
-        {"method": "GET /api/analytics/forecasts/", "description": "Прогноз продаж и спроса"},
-        {"method": "POST /api/assistant/chat/", "description": "Безлимитные подсказки AI-ассистента"},
-    ],
-    core_models.SubscriptionPlan.ENTERPRISE: [
-        {"method": "POST /api/automation/rules/", "description": "Настройка автоматизаций и сценариев"},
-        {"method": "POST /api/integrations/webhooks/", "description": "Вебхуки и управление API-ключами"},
-        {"method": "GET /api/analytics/insights/", "description": "Глубокая аналитика и рекомендации"},
-        {"method": "POST /api/assistant/chat/", "description": "Инсайты на основе данных по требованию"},
-    ],
+	core_models.SubscriptionPlan.FREE: [
+		{"method": "GET /api/catalog/products/", "description": "Просмотр каталога товаров"},
+		{"method": "GET /api/sales/pipelines/", "description": "Доступ к базовым воронкам продаж"},
+		{"method": "POST /api/assistant/chat/", "description": "10 запросов к AI-ассистенту"},
+	],
+	core_models.SubscriptionPlan.PRO: [
+		{"method": "POST /api/catalog/products/", "description": "Создание и обновление товаров"},
+		{"method": "GET /api/sales/orders/", "description": "Работа с заказами и счетами"},
+		{"method": "GET /api/analytics/forecasts/", "description": "Прогноз продаж и спроса"},
+		{"method": "POST /api/assistant/chat/", "description": "Безлимитные подсказки AI-ассистента"},
+	],
+	core_models.SubscriptionPlan.ENTERPRISE: [
+		{"method": "POST /api/automation/rules/", "description": "Настройка автоматизаций и сценариев"},
+		{"method": "POST /api/integrations/webhooks/", "description": "Вебхуки и управление API-ключами"},
+		{"method": "GET /api/analytics/insights/", "description": "Глубокая аналитика и рекомендации"},
+		{"method": "POST /api/assistant/chat/", "description": "Инсайты на основе данных по требованию"},
+	],
 }
 
 
 class BillingOverviewView(APIView):
-    """Expose subscription status, available plans and API credentials."""
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):  # type: ignore[override]
-        organization = request.user.organization
-        current_subscription = (
-            organization.subscriptions.filter(is_active=True).select_related("plan").order_by("-started_at").first()
-        )
-        plans = core_models.SubscriptionPlan.objects.all().order_by("price_per_month")
-        api_token, _ = Token.objects.get_or_create(user=request.user)
-
-        current_plan_key = current_subscription.plan.key if current_subscription else core_models.SubscriptionPlan.FREE
-        payload = {
-            "current_subscription": SubscriptionSerializer(
-                current_subscription,
-                context={"request": request},
-            ).data
-            if current_subscription
-            else None,
-            "available_plans": SubscriptionPlanSerializer(
-                plans,
-                context={"request": request},
-                many=True,
-            ).data,
-            "api_token": api_token.key,
-            "api_methods": PLAN_API_CATALOG.get(current_plan_key, []),
-        }
-        return Response(payload)
+	"""Expose subscription status, available plans and API credentials."""
+	
+	permission_classes = [permissions.IsAuthenticated]
+	
+	def get(self, request, *args, **kwargs):  # type: ignore[override]
+		organization = request.user.organization
+		current_subscription = (
+			organization.subscriptions.filter(is_active=True).select_related("plan").order_by("-started_at").first()
+		)
+		plans = core_models.SubscriptionPlan.objects.all().order_by("price_per_month")
+		api_token, _ = Token.objects.get_or_create(user=request.user)
+		
+		current_plan_key = current_subscription.plan.key if current_subscription else core_models.SubscriptionPlan.FREE
+		payload = {
+			"current_subscription": SubscriptionSerializer(
+				current_subscription,
+				context={"request": request},
+			).data
+			if current_subscription
+			else None,
+			"available_plans": SubscriptionPlanSerializer(
+				plans,
+				context={"request": request},
+				many=True,
+			).data,
+			"api_token": api_token.key,
+			"api_methods": PLAN_API_CATALOG.get(current_plan_key, []),
+		}
+		return Response(payload)
 
 
 class ChangeSubscriptionPlanView(APIView):
-    """Allow workspace administrators to switch billing plans."""
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):  # type: ignore[override]
-        plan_key = request.data.get("plan_key")
-        plan_id = request.data.get("plan_id")
-
-        plan = None
-        if plan_key:
-            try:
-                plan = core_models.SubscriptionPlan.objects.get(key=plan_key)
-            except core_models.SubscriptionPlan.DoesNotExist as exc:  # pragma: no cover - guard rail
-                raise ValidationError({"plan_key": "Запрошенный тариф не найден."}) from exc
-        elif plan_id:
-            try:
-                plan = core_models.SubscriptionPlan.objects.get(pk=plan_id)
-            except core_models.SubscriptionPlan.DoesNotExist as exc:  # pragma: no cover - guard rail
-                raise ValidationError({"plan_id": "Запрошенный тариф не найден."}) from exc
-        else:
-            raise ValidationError({"detail": "Укажите plan_key или plan_id."})
-
-        organization = request.user.organization
-        today = date.today()
-        current_subscription = (
-            organization.subscriptions.filter(is_active=True).select_related("plan").order_by("-started_at").first()
-        )
-
-        if current_subscription and current_subscription.plan_id == plan.id:
-            data = SubscriptionSerializer(current_subscription, context={"request": request}).data
-            return Response({"detail": "Вы уже используете этот тариф.", "subscription": data}, status=status.HTTP_200_OK)
-
-        organization.subscriptions.filter(is_active=True).update(is_active=False, expires_at=today)
-
-        subscription = core_models.Subscription.objects.create(
-            organization=organization,
-            plan=plan,
-            started_at=today,
-            is_active=True,
-        )
-
-        data = SubscriptionSerializer(subscription, context={"request": request}).data
-        return Response(data, status=status.HTTP_201_CREATED)
+	"""Allow workspace administrators to switch billing plans."""
+	
+	permission_classes = [permissions.IsAuthenticated]
+	
+	def post(self, request, *args, **kwargs):  # type: ignore[override]
+		plan_key = request.data.get("plan_key")
+		plan_id = request.data.get("plan_id")
+		
+		plan = None
+		if plan_key:
+			try:
+				plan = core_models.SubscriptionPlan.objects.get(key=plan_key)
+			except core_models.SubscriptionPlan.DoesNotExist as exc:  # pragma: no cover - guard rail
+				raise ValidationError({"plan_key": "Запрошенный тариф не найден."}) from exc
+		elif plan_id:
+			try:
+				plan = core_models.SubscriptionPlan.objects.get(pk=plan_id)
+			except core_models.SubscriptionPlan.DoesNotExist as exc:  # pragma: no cover - guard rail
+				raise ValidationError({"plan_id": "Запрошенный тариф не найден."}) from exc
+		else:
+			raise ValidationError({"detail": "Укажите plan_key или plan_id."})
+		
+		organization = request.user.organization
+		today = date.today()
+		current_subscription = (
+			organization.subscriptions.filter(is_active=True).select_related("plan").order_by("-started_at").first()
+		)
+		
+		if current_subscription and current_subscription.plan_id == plan.id:
+			data = SubscriptionSerializer(current_subscription, context={"request": request}).data
+			return Response({"detail": "Вы уже используете этот тариф.", "subscription": data},
+			                status=status.HTTP_200_OK)
+		
+		organization.subscriptions.filter(is_active=True).update(is_active=False, expires_at=today)
+		
+		subscription = core_models.Subscription.objects.create(
+			organization=organization,
+			plan=plan,
+			started_at=today,
+			is_active=True,
+		)
+		
+		data = SubscriptionSerializer(subscription, context={"request": request}).data
+		return Response(data, status=status.HTTP_201_CREATED)
 
 
 class ExcelDataImportView(APIView):
-    """Ingest CRM entities from Excel/CSV workbooks."""
+	"""Ingest CRM entities from Excel/CSV workbooks."""
+	
+	permission_classes = [permissions.IsAuthenticated]
+	
+	def post(self, request, *args, **kwargs):  # type: ignore[override]
+		serializer = ExcelImportSerializer(data=request.data)
+		serializer.is_valid(raise_exception=True)
+		
+		resource: str = serializer.validated_data["resource"]
+		file_obj = serializer.validated_data["file"]
+		dataframe = self._load_dataframe(file_obj)
+		
+		if dataframe.empty:
+			return Response({"detail": "Файл не содержит данных."}, status=status.HTTP_400_BAD_REQUEST)
+		
+		dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
+		records = dataframe.replace({pd.NA: None}).to_dict(orient="records")
+		
+		if resource == "contacts":
+			result = self._import_contacts(request.user.organization, records)
+		else:
+			result = self._import_products(request.user.organization, records)
+		
+		return Response({"resource": resource, **result}, status=status.HTTP_200_OK)
+	
+	@staticmethod
+	def _load_dataframe(file_obj):
+		name = (getattr(file_obj, "name", "") or "").lower()
+		if name.endswith(".csv"):
+			return pd.read_csv(file_obj)
+		return pd.read_excel(file_obj)
+	
+	@staticmethod
+	def _resolve_value(row: dict, *candidates: str):
+		for candidate in candidates:
+			if candidate in row and row[candidate] not in (None, ""):
+				return row[candidate]
+		return None
+	
+	def _import_contacts(self, organization, rows: list[dict]):
+		stats = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
+		for index, row in enumerate(rows, start=1):
+			first_name = (self._resolve_value(row, "first_name", "имя", "name") or "").strip()
+			last_name = (self._resolve_value(row, "last_name", "фамилия") or "").strip()
+			email = (self._resolve_value(row, "email", "e-mail") or "").strip()
+			phone = (self._resolve_value(row, "phone", "phone_number", "телефон") or "").strip()
+			company_name = (self._resolve_value(row, "company", "компания") or "").strip()
+			tags_raw = self._resolve_value(row, "tags", "теги")
+			
+			if not first_name and not last_name and not email:
+				stats["skipped"] += 1
+				stats["errors"].append({"row": index, "reason": "Не хватает имени или email."})
+				continue
+			
+			company = None
+			if company_name:
+				company, _ = sales_models.Company.objects.get_or_create(
+					organization=organization,
+					name=company_name,
+				)
+			
+			tags = []
+			if isinstance(tags_raw, str):
+				tags = [tag.strip() for tag in tags_raw.split(",") if tag.strip()]
+			elif isinstance(tags_raw, list):
+				tags = [str(tag).strip() for tag in tags_raw if str(tag).strip()]
+			
+			lookup = {"organization": organization}
+			if email:
+				lookup["email"] = email
+			else:
+				lookup["first_name"] = first_name
+				lookup["last_name"] = last_name
+			
+			contact, created = sales_models.Contact.objects.update_or_create(
+				defaults={
+					"first_name": first_name or last_name or email or "",
+					"last_name": last_name,
+					"phone_number": phone,
+					"company": company,
+					"tags": tags,
+				},
+				**lookup,
+			)
+			stats["created" if created else "updated"] += 1
+		return stats
+	
+	def _import_products(self, organization, rows: list[dict]):
+		stats = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
+		for index, row in enumerate(rows, start=1):
+			name = (self._resolve_value(row, "name", "название") or "").strip()
+			sku = (self._resolve_value(row, "sku", "артикул") or "").strip()
+			description = self._resolve_value(row, "description", "описание") or ""
+			category_name = (self._resolve_value(row, "category", "категория") or "").strip()
+			is_active_value = self._resolve_value(row, "is_active", "активен")
+			
+			if not name or not sku:
+				stats["skipped"] += 1
+				stats["errors"].append({"row": index, "reason": "Не заполнены название или SKU."})
+				continue
+			
+			category = None
+			if category_name:
+				category_slug = slugify(category_name)
+				category, _ = catalog_models.Category.objects.get_or_create(
+					organization=organization,
+					slug=category_slug,
+					defaults={"name": category_name},
+				)
+			
+			is_active = True
+			if isinstance(is_active_value, str):
+				is_active = is_active_value.strip().lower() not in {"0", "false", "нет", "inactive"}
+			elif isinstance(is_active_value, (int, float)):
+				is_active = bool(is_active_value)
+			
+			product, created = catalog_models.Product.objects.update_or_create(
+				organization=organization,
+				sku=sku,
+				defaults={
+					"name": name,
+					"description": description,
+					"category": category,
+					"is_active": is_active,
+				},
+			)
+			
+			stats["created" if created else "updated"] += 1
+		return stats
 
-    permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):  # type: ignore[override]
-        serializer = ExcelImportSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        resource: str = serializer.validated_data["resource"]
-        file_obj = serializer.validated_data["file"]
-        dataframe = self._load_dataframe(file_obj)
-
-        if dataframe.empty:
-            return Response({"detail": "Файл не содержит данных."}, status=status.HTTP_400_BAD_REQUEST)
-
-        dataframe.columns = [str(column).strip().lower() for column in dataframe.columns]
-        records = dataframe.replace({pd.NA: None}).to_dict(orient="records")
-
-        if resource == "contacts":
-            result = self._import_contacts(request.user.organization, records)
-        else:
-            result = self._import_products(request.user.organization, records)
-
-        return Response({"resource": resource, **result}, status=status.HTTP_200_OK)
-
-    @staticmethod
-    def _load_dataframe(file_obj):
-        name = (getattr(file_obj, "name", "") or "").lower()
-        if name.endswith(".csv"):
-            return pd.read_csv(file_obj)
-        return pd.read_excel(file_obj)
-
-    @staticmethod
-    def _resolve_value(row: dict, *candidates: str):
-        for candidate in candidates:
-            if candidate in row and row[candidate] not in (None, ""):
-                return row[candidate]
-        return None
-
-    def _import_contacts(self, organization, rows: list[dict]):
-        stats = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
-        for index, row in enumerate(rows, start=1):
-            first_name = (self._resolve_value(row, "first_name", "имя", "name") or "").strip()
-            last_name = (self._resolve_value(row, "last_name", "фамилия") or "").strip()
-            email = (self._resolve_value(row, "email", "e-mail") or "").strip()
-            phone = (self._resolve_value(row, "phone", "phone_number", "телефон") or "").strip()
-            company_name = (self._resolve_value(row, "company", "компания") or "").strip()
-            tags_raw = self._resolve_value(row, "tags", "теги")
-
-            if not first_name and not last_name and not email:
-                stats["skipped"] += 1
-                stats["errors"].append({"row": index, "reason": "Не хватает имени или email."})
-                continue
-
-            company = None
-            if company_name:
-                company, _ = sales_models.Company.objects.get_or_create(
-                    organization=organization,
-                    name=company_name,
-                )
-
-            tags = []
-            if isinstance(tags_raw, str):
-                tags = [tag.strip() for tag in tags_raw.split(",") if tag.strip()]
-            elif isinstance(tags_raw, list):
-                tags = [str(tag).strip() for tag in tags_raw if str(tag).strip()]
-
-            lookup = {"organization": organization}
-            if email:
-                lookup["email"] = email
-            else:
-                lookup["first_name"] = first_name
-                lookup["last_name"] = last_name
-
-            contact, created = sales_models.Contact.objects.update_or_create(
-                defaults={
-                    "first_name": first_name or last_name or email or "",
-                    "last_name": last_name,
-                    "phone_number": phone,
-                    "company": company,
-                    "tags": tags,
-                },
-                **lookup,
-            )
-            stats["created" if created else "updated"] += 1
-        return stats
-
-    def _import_products(self, organization, rows: list[dict]):
-        stats = {"created": 0, "updated": 0, "skipped": 0, "errors": []}
-        for index, row in enumerate(rows, start=1):
-            name = (self._resolve_value(row, "name", "название") or "").strip()
-            sku = (self._resolve_value(row, "sku", "артикул") or "").strip()
-            description = self._resolve_value(row, "description", "описание") or ""
-            category_name = (self._resolve_value(row, "category", "категория") or "").strip()
-            is_active_value = self._resolve_value(row, "is_active", "активен")
-
-            if not name or not sku:
-                stats["skipped"] += 1
-                stats["errors"].append({"row": index, "reason": "Не заполнены название или SKU."})
-                continue
-
-            category = None
-            if category_name:
-                category_slug = slugify(category_name)
-                category, _ = catalog_models.Category.objects.get_or_create(
-                    organization=organization,
-                    slug=category_slug,
-                    defaults={"name": category_name},
-                )
-
-            is_active = True
-            if isinstance(is_active_value, str):
-                is_active = is_active_value.strip().lower() not in {"0", "false", "нет", "inactive"}
-            elif isinstance(is_active_value, (int, float)):
-                is_active = bool(is_active_value)
-
-            product, created = catalog_models.Product.objects.update_or_create(
-                organization=organization,
-                sku=sku,
-                defaults={
-                    "name": name,
-                    "description": description,
-                    "category": category,
-                    "is_active": is_active,
-                },
-            )
-
-            stats["created" if created else "updated"] += 1
-        return stats
 class DashboardOverviewView(APIView):
 	"""Aggregate CRM signals for the interactive dashboard."""
 	
