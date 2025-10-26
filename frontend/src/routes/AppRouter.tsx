@@ -11,6 +11,7 @@ import { ProductDetailPage } from '../pages/ProductDetailPage';
 import { AccountPage } from '../pages/AccountPage';
 import { ApiAccessPage } from '../pages/ApiAccessPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
+import { AdminPage } from '../pages/AdminPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 const NotFoundPage = () => <div>Страница не найдена</div>;
@@ -29,6 +30,7 @@ const AppRouter = () => (
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/api-access" element={<ApiAccessPage />} />
         <Route path="/crm/*" element={<DashboardPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

@@ -1,15 +1,59 @@
 .wrapper {
     display: grid;
-    gap: var(--space-xl);
+    gap: var(--space-2xl);
     align-content: start;
+    position: relative;
+}
+
+.wrapper::before,
+.wrapper::after {
+    content: '';
+    position: absolute;
+    width: 460px;
+    height: 460px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.45;
+    pointer-events: none;
+    transform: translate3d(0, 0, 0);
+}
+
+.wrapper::before {
+    top: -320px;
+    right: -180px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.35), transparent 65%);
+}
+
+.wrapper::after {
+    bottom: -260px;
+    left: -120px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.28), transparent 62%);
 }
 
 .header {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
     gap: var(--space-lg);
+    padding: var(--space-xl);
+    border-radius: calc(var(--radius-lg) + 8px);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(14, 165, 233, 0.06));
+    border: 1px solid rgba(14, 95, 216, 0.14);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.header::after {
+    content: '';
+    position: absolute;
+    inset: auto -40% -60% 20%;
+    height: 180px;
+    background: linear-gradient(120deg, rgba(59, 130, 246, 0.28), transparent 70%);
+    opacity: 0.6;
+    pointer-events: none;
+    animation: float 16s ease-in-out infinite alternate;
 }
 
 .headerTitle {
@@ -20,7 +64,8 @@
 
 .headerTitle h1 {
     margin: 0;
-    font-size: 2rem;
+    font-size: 2.1rem;
+    letter-spacing: -0.01em;
 }
 
 .headerTitle p {
@@ -35,12 +80,14 @@
 
 .summaryGrid {
     display: grid;
-    gap: var(--space-md);
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-lg);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    position: relative;
 }
 
 .metricCard {
-    gap: var(--space-xs);
+    gap: var(--space-sm);
+    backdrop-filter: blur(8px);
 }
 
 .metricLabel {
@@ -51,9 +98,10 @@
 }
 
 .metricValue {
-    font-size: 1.75rem;
-    font-weight: 600;
+    font-size: 1.9rem;
+    font-weight: 700;
     color: var(--color-text);
+    letter-spacing: -0.01em;
 }
 
 .metricValueSmall {
@@ -72,6 +120,7 @@
     gap: var(--space-xl);
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
     align-items: start;
+    position: relative;
 }
 
 .column {
@@ -82,6 +131,7 @@
 
 .sectionCard {
     gap: var(--space-md);
+    position: relative;
 }
 
 .sectionHeader {
@@ -145,11 +195,12 @@
 }
 
 .listTag {
-    background: var(--color-surface-muted);
+    background: linear-gradient(120deg, rgba(59, 130, 246, 0.15), rgba(14, 165, 233, 0.12));
     border-radius: var(--radius-full);
-    padding: 0.15rem 0.6rem;
+    padding: 0.2rem 0.6rem;
     font-size: 0.75rem;
-    color: var(--color-text-secondary);
+    font-weight: 600;
+    color: rgba(15, 23, 42, 0.75);
 }
 
 .notesList {
@@ -338,6 +389,15 @@
     display: flex;
     justify-content: center;
     padding: var(--space-2xl) 0;
+}
+
+@keyframes float {
+    0% {
+        transform: translate3d(0, 0, 0);
+    }
+    100% {
+        transform: translate3d(16px, -12px, 0);
+    }
 }
 
 @media (max-width: 1200px) {
