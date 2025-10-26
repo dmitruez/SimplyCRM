@@ -1,5 +1,5 @@
-import {apiClient} from './apiClient';
-import {Deal, DealNote, PurchaseRecord} from '../types/sales';
+import { apiClient } from './apiClient';
+import { Deal, DealNote, PurchaseRecord, InvoiceRecord, PaymentRecord, ShipmentRecord } from '../types/sales';
 
 interface PaginatedResponse<T> {
     results: T[];
@@ -32,6 +32,34 @@ interface OrderDto {
     total_amount: number | string;
     contact_name: string | null;
     ordered_at: string | null;
+}
+
+interface InvoiceDto {
+    id: number;
+    order: number;
+    status: string;
+    total_amount: number | string;
+    issued_at: string;
+    due_date: string | null;
+}
+
+interface PaymentDto {
+    id: number;
+    invoice: number;
+    amount: number | string;
+    provider: string;
+    processed_at: string | null;
+    transaction_reference: string | null;
+}
+
+interface ShipmentDto {
+    id: number;
+    order: number;
+    carrier: string;
+    tracking_number: string;
+    shipped_at: string | null;
+    delivered_at: string | null;
+    status: string;
 }
 
 const toNumber = (value: number | string | null | undefined): number => {
@@ -84,6 +112,68 @@ export const salesApi = {
             createdAt: note.created_at,
             relatedObjectType: note.related_object_type,
             relatedObjectId: note.related_object_id
+        }));
+    },
+
+    async createNote(payload: { content: string; relatedObjectType?: string; relatedObjectId?: number }): Promise<DealNote> {
+        const body: Record<string, unknown> = { content: payload.content };
+        if (payload.relatedObjectType) {
+            body.related_object_type = payload.relatedObjectType;
+        }
+        if (typeof payload.relatedObjectId === 'number') {
+            body.related_object_id = payload.relatedObjectId;
+        }
+        const { data } = await apiClient.post<NoteDto>('/sales/notes/', body);
+        return {
+            id: data.id,
+            authorName: data.author_name ?? undefined,
+            content: data.content,
+            createdAt: data.created_at,
+            relatedObjectType: data.related_object_type,
+            relatedObjectId: data.related_object_id
+        };
+    },
+
+    async listInvoices(): Promise<InvoiceRecord[]> {
+        const { data } = await apiClient.get<PaginatedResponse<InvoiceDto>>('/sales/invoices/', {
+            params: { page_size: 20, ordering: '-issued_at' }
+        });
+        return (data.results ?? []).map((invoice) => ({
+            id: invoice.id,
+            orderId: invoice.order,
+            status: invoice.status,
+            totalAmount: toNumber(invoice.total_amount),
+            issuedAt: invoice.issued_at,
+            dueDate: invoice.due_date
+        }));
+    },
+
+    async listPayments(): Promise<PaymentRecord[]> {
+        const { data } = await apiClient.get<PaginatedResponse<PaymentDto>>('/sales/payments/', {
+            params: { page_size: 20, ordering: '-processed_at' }
+        });
+        return (data.results ?? []).map((payment) => ({
+            id: payment.id,
+            invoiceId: payment.invoice,
+            amount: toNumber(payment.amount),
+            provider: payment.provider,
+            processedAt: payment.processed_at,
+            transactionReference: payment.transaction_reference ?? undefined
+        }));
+    },
+
+    async listShipments(): Promise<ShipmentRecord[]> {
+        const { data } = await apiClient.get<PaginatedResponse<ShipmentDto>>('/sales/shipments/', {
+            params: { page_size: 20, ordering: '-shipped_at' }
+        });
+        return (data.results ?? []).map((shipment) => ({
+            id: shipment.id,
+            orderId: shipment.order,
+            carrier: shipment.carrier,
+            trackingNumber: shipment.tracking_number,
+            status: shipment.status,
+            shippedAt: shipment.shipped_at,
+            deliveredAt: shipment.delivered_at
         }));
     }
 };

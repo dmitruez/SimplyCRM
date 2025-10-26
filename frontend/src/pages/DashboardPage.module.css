@@ -199,6 +199,133 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.featureGate {
+    padding: var(--space-md);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+
+.noteForm,
+.automationForm,
+.integrationForm,
+.messageForm {
+    display: grid;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.noteForm textarea,
+.automationForm textarea,
+.messageForm textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.automationForm input,
+.automationForm textarea,
+.integrationForm input,
+.integrationForm textarea,
+.noteForm input,
+.messageForm textarea,
+.noteForm textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font: inherit;
+}
+
+.assistantLayout {
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
+}
+
+.assistantSidebar {
+    display: grid;
+    gap: var(--space-md);
+    align-content: start;
+}
+
+.conversationList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.conversationList li {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
+    display: grid;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.conversationList li[data-active='true'] {
+    border-color: rgba(14, 95, 216, 0.45);
+    background: rgba(14, 95, 216, 0.08);
+}
+
+.assistantContent {
+    display: grid;
+    gap: var(--space-md);
+    align-content: start;
+}
+
+.messages {
+    max-height: 320px;
+    overflow-y: auto;
+    display: grid;
+    gap: var(--space-sm);
+    padding-right: var(--space-sm);
+}
+
+.message {
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
+    display: grid;
+    gap: 0.35rem;
+    background: var(--color-surface-muted);
+}
+
+.message[data-role='assistant'] {
+    background: rgba(14, 95, 216, 0.12);
+}
+
+.messageRole {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.messageMeta {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.messageBody {
+    white-space: pre-wrap;
+}
+
+.messageForm textarea {
+    min-height: 80px;
+}
+
+.integrationForm details {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.integrationForm details summary {
+    cursor: pointer;
+}
+
 .catalogStats {
     display: grid;
     gap: var(--space-sm);

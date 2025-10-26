@@ -17,22 +17,38 @@ const featureCatalog: Record<string, { code: string; label: string }[]> = {
     ],
     pro: [
         {code: 'catalog.manage', label: 'Каталог: полный CRUD'},
+        {code: 'catalog.manage_suppliers', label: 'Поставщики и закупки'},
+        {code: 'inventory.advanced_tracking', label: 'Партионный учет и остатки'},
+        {code: 'pricing.history_view', label: 'История изменения цен'},
+        {code: 'sales.advanced_pipeline', label: 'Расширенные стадии сделок'},
         {code: 'sales.order_management', label: 'Заказы и счета'},
-        {code: 'analytics.forecasting', label: 'Прогноз спроса'},
+        {code: 'billing.invoices', label: 'Выставление счетов и оплаты'},
+        {code: 'analytics.standard', label: 'Базовые отчеты и дашборды'},
+        {code: 'analytics.forecasting', label: 'Прогноз спроса и next best action'},
+        {code: 'analytics.customer_segments', label: 'RFM и сегментация клиентов'},
         {code: 'assistant.chat', label: 'AI-ассистент (безлимит)'}
     ],
     enterprise: [
         {code: 'automation.rules', label: 'Автоматизация процессов'},
-        {code: 'integrations.api_keys', label: 'Интеграции и вебхуки'},
+        {code: 'automation.campaigns', label: 'Маркетинговые кампании'},
+        {code: 'automation.notifications', label: 'Уведомления и сценарии'},
+        {code: 'automation.webhooks', label: 'Авто-вебхуки'},
+        {code: 'integrations.api_keys', label: 'API-ключи и лимиты'},
+        {code: 'integrations.connectors', label: 'Готовые коннекторы и логи'},
+        {code: 'integrations.imports', label: 'Импорт данных и пайплайны'},
         {code: 'analytics.insights', label: 'Глубокие отчеты и рекомендации'},
+        {code: 'analytics.automated_reports', label: 'Автоматические отчеты'},
+        {code: 'analytics.mlops', label: 'Контроль ML-моделей'},
         {code: 'assistant.chat', label: 'AI-ассистент с инсайтами'}
     ]
 };
 
 export const pricingApi = {
     async listPlans(): Promise<PricingPlan[]> {
-        const {data} = await apiClient.get<SubscriptionPlanResponse[]>('/subscription-plans/');
-        return data.map((plan) => ({
+        const {data} = await apiClient.get<SubscriptionPlanResponse[] | { results: SubscriptionPlanResponse[] }>('/subscription-plans/');
+        const plans = Array.isArray(data) ? data : data?.results ?? [];
+
+        return plans.map((plan) => ({
             id: plan.id,
             key: plan.key,
             name: plan.name,

@@ -14,13 +14,16 @@ from simplycrm.automation.urls import router as automation_router
 from simplycrm.catalog.urls import router as catalog_router
 from simplycrm.core.urls import router as core_router
 from simplycrm.core.views import (
-	CSRFCookieView,
-	DashboardOverviewView,
-	GoogleAuthView,
-	ObtainAuthTokenView,
-	ProfileView,
-	RegisterView,
-	RevokeAuthTokenView,
+        CSRFCookieView,
+        DashboardOverviewView,
+        GoogleAuthView,
+        ObtainAuthTokenView,
+        ProfileView,
+        RegisterView,
+        RevokeAuthTokenView,
+        BillingOverviewView,
+        ChangeSubscriptionPlanView,
+        ExcelDataImportView,
 )
 from simplycrm.integrations.urls import router as integrations_router
 from simplycrm.sales.urls import router as sales_router
@@ -50,8 +53,11 @@ urlpatterns = [
 	path("api/auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
 	path("api/auth/profile/", ProfileView.as_view(), name="auth-profile"),
 	path("api/auth/register/", RegisterView.as_view(), name="auth-register"),
-	path("api/auth/google/", GoogleAuthView.as_view(), name="auth-google"),
-	path("api/dashboard/overview/", DashboardOverviewView.as_view(), name="dashboard-overview"),
+        path("api/auth/google/", GoogleAuthView.as_view(), name="auth-google"),
+        path("api/billing/overview/", BillingOverviewView.as_view(), name="billing-overview"),
+        path("api/billing/change-plan/", ChangeSubscriptionPlanView.as_view(), name="billing-change-plan"),
+        path("api/data-import/", ExcelDataImportView.as_view(), name="data-import"),
+        path("api/dashboard/overview/", DashboardOverviewView.as_view(), name="dashboard-overview"),
 	path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
 	path(
 		"api/docs/",
