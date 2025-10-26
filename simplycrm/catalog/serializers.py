@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from rest_framework import serializers
+
 from simplycrm.catalog import models
 
 
@@ -27,13 +28,36 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-	variants = ProductVariantSerializer(many=True, read_only=True)
-	
-	
-	class Meta:
-		model = models.Product
-		fields = ["id", "organization", "category", "name", "sku", "description", "is_active", "variants"]
-		read_only_fields = ["id"]
+    variants = ProductVariantSerializer(many=True, read_only=True)
+    main_image = serializers.FileField(required=False, allow_null=True, write_only=True)
+    main_image_url = serializers.SerializerMethodField()
+    category_name = serializers.CharField(source="category.name", read_only=True)
+
+    class Meta:
+        model = models.Product
+        fields = [
+            "id",
+            "organization",
+            "category",
+            "category_name",
+            "name",
+            "sku",
+            "description",
+            "main_image",
+            "main_image_url",
+            "is_active",
+            "variants",
+        ]
+        read_only_fields = ["id", "organization", "main_image_url", "category_name"]
+
+    def get_main_image_url(self, obj):  # noqa: D401 - serializer helper
+        request = self.context.get("request") if hasattr(self, "context") else None
+        if not obj.main_image:
+            return None
+        url = obj.main_image.url
+        if request is not None:
+            return request.build_absolute_uri(url)
+        return url
 
 
 class InventoryLotSerializer(serializers.ModelSerializer):

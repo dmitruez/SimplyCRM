@@ -4,6 +4,8 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 
+from simplycrm.catalog.validators import validate_image_mime
+
 
 class Category(models.Model):
 	organization = models.ForeignKey("core.Organization", on_delete=models.CASCADE, related_name="categories")
@@ -11,11 +13,9 @@ class Category(models.Model):
 	slug = models.SlugField(max_length=255)
 	parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="children")
 	
-	
 	class Meta:
 		unique_together = ("organization", "slug")
 		ordering = ["name"]
-	
 	
 	def __str__(self) -> str:  # pragma: no cover
 		return self.name
@@ -33,21 +33,25 @@ class Supplier(models.Model):
 
 
 class Product(models.Model):
-	organization = models.ForeignKey("core.Organization", on_delete=models.CASCADE, related_name="products")
-	category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL, related_name="products")
-	name = models.CharField(max_length=255)
-	sku = models.CharField(max_length=64)
-	description = models.TextField(blank=True)
-	is_active = models.BooleanField(default=True)
-	
-	
-	class Meta:
-		unique_together = ("organization", "sku")
-		ordering = ["name"]
-	
-	
-	def __str__(self) -> str:  # pragma: no cover
-		return self.name
+    organization = models.ForeignKey("core.Organization", on_delete=models.CASCADE, related_name="products")
+    category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL, related_name="products")
+    name = models.CharField(max_length=255)
+    sku = models.CharField(max_length=64)
+    description = models.TextField(blank=True)
+    main_image = models.FileField(
+        upload_to="product-images/",
+        blank=True,
+        null=True,
+        validators=[validate_image_mime],
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("organization", "sku")
+        ordering = ["name"]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return self.name
 
 
 class ProductVariant(models.Model):
@@ -58,10 +62,8 @@ class ProductVariant(models.Model):
 	price = models.DecimalField(max_digits=10, decimal_places=2)
 	cost = models.DecimalField(max_digits=10, decimal_places=2)
 	
-	
 	class Meta:
 		unique_together = ("product", "sku")
-	
 	
 	def __str__(self) -> str:  # pragma: no cover
 		return f"{self.product.name} / {self.name}"
@@ -69,8 +71,7 @@ class ProductVariant(models.Model):
 
 class InventoryLot(models.Model):
 	variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="inventory_lots")
-	supplier = models.ForeignKey(Supplier, null=True, blank=True, on_delete=models.SET_NULL,
-	                             related_name="inventory_lots")
+	supplier = models.ForeignKey(Supplier, null=True, blank=True, on_delete=models.SET_NULL, related_name="inventory_lots")
 	quantity = models.PositiveIntegerField()
 	received_at = models.DateField()
 	expires_at = models.DateField(null=True, blank=True)
@@ -87,10 +88,8 @@ class PriceHistory(models.Model):
 	recorded_at = models.DateTimeField(auto_now_add=True)
 	recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
 	
-	
 	class Meta:
 		ordering = ["-recorded_at"]
-	
 	
 	def __str__(self) -> str:  # pragma: no cover
 		return f"{self.variant} @ {self.price}"

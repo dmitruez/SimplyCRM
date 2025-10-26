@@ -14,6 +14,9 @@ interface RawUserProfile {
     email: string;
     first_name?: string;
     last_name?: string;
+    title?: string;
+    timezone?: string;
+    locale?: string;
     organization?: {
         id: number;
         name: string;
@@ -78,28 +81,49 @@ export const authApi = {
         });
         setAccessToken(data.access);
         return {...data, profile: normalizeProfile(data.profile)};
+    },
+    async updateProfile(payload: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      title?: string;
+      timezone?: string;
+      locale?: string;
+    }): Promise<UserProfile> {
+      const { data } = await apiClient.patch<RawUserProfile>('/auth/profile/', {
+        first_name: payload.firstName,
+        last_name: payload.lastName,
+        email: payload.email,
+        title: payload.title,
+        timezone: payload.timezone,
+        locale: payload.locale
+      });
+      return normalizeProfile(data);
     }
-};
+  };
 
-function normalizeProfile(profile: RawUserProfile): UserProfile {
+  function normalizeProfile(profile: RawUserProfile): UserProfile {
     return {
-        id: profile.id,
-        username: profile.username,
-        email: profile.email,
-        firstName: profile.first_name ?? '',
-        lastName: profile.last_name ?? '',
-        organization: profile.organization
-            ? {
-                id: profile.organization.id,
-                name: profile.organization.name,
-                slug: profile.organization.slug
-            }
-            : undefined,
-        featureFlags: (profile.feature_flags ?? []).map((flag) => ({
-            code: flag.code,
-            name: flag.name,
-            description: flag.description,
-            enabled: Boolean(flag.enabled)
-        }))
+      id: profile.id,
+      username: profile.username,
+      email: profile.email,
+      firstName: profile.first_name ?? '',
+      lastName: profile.last_name ?? '',
+      title: profile.title ?? '',
+      timezone: profile.timezone ?? 'UTC',
+      locale: profile.locale ?? 'ru-RU',
+      organization: profile.organization
+        ? {
+            id: profile.organization.id,
+            name: profile.organization.name,
+            slug: profile.organization.slug
+          }
+        : undefined,
+      featureFlags: (profile.feature_flags ?? []).map((flag) => ({
+        code: flag.code,
+        name: flag.name,
+        description: flag.description,
+        enabled: Boolean(flag.enabled)
+      }))
     };
-}
+  }

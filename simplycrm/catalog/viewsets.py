@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from rest_framework import permissions, viewsets
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
+
 from simplycrm.catalog import models, serializers
 from simplycrm.core.permissions import HasFeaturePermission
 
@@ -32,15 +34,21 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
 
 class ProductViewSet(viewsets.ModelViewSet):
-	serializer_class = serializers.ProductSerializer
-	permission_classes = [permissions.IsAuthenticated]
-	
-	def get_queryset(self):  # type: ignore[override]
-		user = self.request.user
-		return models.Product.objects.filter(organization=user.organization).prefetch_related("variants")
-	
-	def perform_create(self, serializer):  # type: ignore[override]
-		serializer.save(organization=self.request.user.organization)
+    serializer_class = serializers.ProductSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):  # type: ignore[override]
+        user = self.request.user
+        return models.Product.objects.filter(organization=user.organization).prefetch_related("variants")
+
+    def perform_create(self, serializer):  # type: ignore[override]
+        serializer.save(organization=self.request.user.organization)
+
+    def get_serializer_context(self):  # type: ignore[override]
+        context = super().get_serializer_context()
+        context.setdefault("request", self.request)
+        return context
 
 
 class ProductVariantViewSet(viewsets.ModelViewSet):

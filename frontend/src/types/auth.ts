@@ -12,13 +12,16 @@ export interface OrganizationSummary {
 }
 
 export interface UserProfile {
-    id: number;
-    username: string;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    organization?: OrganizationSummary;
-    featureFlags: FeatureFlag[];
+  id: number;
+  username: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  title?: string;
+  timezone?: string;
+  locale?: string;
+  organization?: OrganizationSummary;
+  featureFlags: FeatureFlag[];
 }
 
 export interface AuthState {
@@ -28,12 +31,13 @@ export interface AuthState {
 }
 
 export interface AuthContextValue extends AuthState {
-    login: (payload: { username: string; password: string; captchaToken?: string }) => Promise<void>;
-    loginWithGoogle: (payload: { credential: string; organizationName?: string; planKey?: string }) => Promise<void>;
-    register: (payload: RegistrationFormValues) => Promise<void>;
-    logout: () => Promise<void>;
-    refreshProfile: () => Promise<void>;
-    isFeatureEnabled: (code: string) => boolean;
+  login: (payload: { username: string; password: string; captchaToken?: string }) => Promise<void>;
+  loginWithGoogle: (payload: { credential: string; organizationName?: string; planKey?: string }) => Promise<void>;
+  register: (payload: RegistrationFormValues) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  isFeatureEnabled: (code: string) => boolean;
+  updateProfile: (payload: Partial<Pick<UserProfile, 'firstName' | 'lastName' | 'email' | 'title' | 'timezone' | 'locale'>>) => Promise<UserProfile>;
 }
 
 export interface RegistrationFormValues {

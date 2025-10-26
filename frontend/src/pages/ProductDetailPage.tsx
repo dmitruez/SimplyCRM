@@ -99,51 +99,54 @@ export const ProductDetailPage = () => {
         return <p>Не удалось загрузить товар. Попробуйте обновить страницу.</p>;
     }
 
-    return (
-        <div className={styles.wrapper}>
-            <Helmet>
-                <title>{product.name} — SimplyCRM</title>
-            </Helmet>
-            <header className={styles.header}>
-                <div>
-                    <h1>{product.name}</h1>
-                    <p>{product.description ?? 'Описание не заполнено.'}</p>
-                </div>
-                <div className={styles.meta}>
-                    <span>SKU: {product.sku}</span>
-                    <span>Категория: {product.category ?? '—'}</span>
-                    <span>
-            Цена: {product.price.toLocaleString('ru-RU')} {product.currency}
-          </span>
-                    <span>Остаток: {product.stock} шт.</span>
-                    <span>Поставщик: {product.supplierName ?? '—'}</span>
-                    <span>Обновлено: {new Date(product.updatedAt).toLocaleString()}</span>
-                </div>
-            </header>
-            <section className={styles.section}>
-                <h2>Связанные сделки</h2>
-                <DataTable<Deal>
-                    columns={dealColumns}
-                    data={deals}
-                    emptyMessage="Связанные сделки не найдены."
-                />
-            </section>
-            <section className={styles.section}>
-                <h2>Заметки</h2>
-                {relatedNotes.length === 0 ? (
-                    <p>Нет заметок, связанных с этим товаром.</p>
-                ) : (
-                    <div className={styles.notesList}>
-                        {relatedNotes.map((note) => (
-                            <div key={note.id} className={styles.note}>
-                                <strong>{note.authorName ?? 'Без автора'}</strong>
-                                <p>{note.content}</p>
-                                <small>{new Date(note.createdAt).toLocaleString()}</small>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </section>
+  const primaryVariant = product.variants[0];
+  const priceLabel = primaryVariant ? `${primaryVariant.price.toLocaleString('ru-RU')} ₽` : '—';
+
+  return (
+    <div className={styles.wrapper}>
+      <Helmet>
+        <title>{product.name} — SimplyCRM</title>
+      </Helmet>
+      <header className={styles.header}>
+        <div>
+          <h1>{product.name}</h1>
+          <p>{product.description ?? 'Описание не заполнено.'}</p>
         </div>
-    );
+        <div className={styles.meta}>
+          <span>SKU: {product.sku}</span>
+          <span>Категория: {product.categoryName ?? '—'}</span>
+          <span>Вариантов: {product.variants.length}</span>
+          <span>Цена от: {priceLabel}</span>
+          <span>Статус: {product.isActive ? 'Активен' : 'Отключён'}</span>
+        </div>
+        {product.mainImageUrl ? (
+          <img src={product.mainImageUrl} alt={product.name} className={styles.preview} />
+        ) : null}
+      </header>
+      <section className={styles.section}>
+        <h2>Связанные сделки</h2>
+        <DataTable<Deal>
+          columns={dealColumns}
+          data={deals}
+          emptyMessage="Связанные сделки не найдены."
+        />
+      </section>
+      <section className={styles.section}>
+        <h2>Заметки</h2>
+        {relatedNotes.length === 0 ? (
+          <p>Нет заметок, связанных с этим товаром.</p>
+        ) : (
+          <div className={styles.notesList}>
+            {relatedNotes.map((note) => (
+              <div key={note.id} className={styles.note}>
+                <strong>{note.authorName ?? 'Без автора'}</strong>
+                <p>{note.content}</p>
+                <small>{new Date(note.createdAt).toLocaleString()}</small>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
 };

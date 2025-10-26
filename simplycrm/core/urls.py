@@ -5,12 +5,15 @@ from django.urls import path
 from rest_framework import routers
 from simplycrm.core import viewsets
 from simplycrm.core.views import (
-	GoogleAuthView,
-	CSRFCookieView,
-	ObtainAuthTokenView,
-	ProfileView,
-	RegisterView,
-	RevokeAuthTokenView,
+    GoogleAuthView,
+    CSRFCookieView,
+    ObtainAuthTokenView,
+    ProfileView,
+    RegisterView,
+    RevokeAuthTokenView,
+    BillingOverviewView,
+    ChangeSubscriptionPlanView,
+    ExcelDataImportView,
 )
 
 
@@ -24,11 +27,14 @@ router.register(r"user-roles", viewsets.UserRoleViewSet)
 router.register(r"audit-logs", viewsets.AuditLogViewSet, basename="audit-log")
 
 urlpatterns = [
-	*router.urls,
-	path("auth/csrf/", CSRFCookieView.as_view(), name="auth-csrf"),
-	path("auth/token/", ObtainAuthTokenView.as_view(), name="auth-token"),
-	path("auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
-	path("auth/profile/", ProfileView.as_view(), name="auth-profile"),
-	path("auth/register/", RegisterView.as_view(), name="auth-register"),
-	path("auth/google/", GoogleAuthView.as_view(), name="auth-google"),
+    *router.urls,
+    path("auth/csrf/", CSRFCookieView.as_view(), name="auth-csrf"),
+    path("auth/token/", ObtainAuthTokenView.as_view(), name="auth-token"),
+    path("auth/token/revoke/", RevokeAuthTokenView.as_view(), name="auth-token-revoke"),
+    path("auth/profile/", ProfileView.as_view(), name="auth-profile"),
+    path("auth/register/", RegisterView.as_view(), name="auth-register"),
+    path("auth/google/", GoogleAuthView.as_view(), name="auth-google"),
+    path("billing/overview/", BillingOverviewView.as_view(), name="billing-overview"),
+    path("billing/change-plan/", ChangeSubscriptionPlanView.as_view(), name="billing-change-plan"),
+    path("data-import/", ExcelDataImportView.as_view(), name="data-import"),
 ]

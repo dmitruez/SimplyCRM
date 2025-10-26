@@ -118,33 +118,42 @@ class AuthTokenSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.Serializer):
-	id = serializers.IntegerField()
-	username = serializers.CharField()
-	email = serializers.EmailField()
-	first_name = serializers.CharField(allow_blank=True)
-	last_name = serializers.CharField(allow_blank=True)
-	organization = serializers.SerializerMethodField()
-	feature_flags = serializers.SerializerMethodField()
-	
-	def get_organization(self, obj):  # noqa: D401 - serializer hook
-		organization = obj.organization
-		return {
-			"id": organization.id,
-			"name": organization.name,
-			"slug": organization.slug,
-		}
-	
-	def get_feature_flags(self, obj):  # noqa: D401
-		enabled_codes = obj.feature_codes()
-		return [
-			{
-				"code": flag.code,
-				"name": flag.name,
-				"description": flag.description,
-				"enabled": flag.code in enabled_codes,
-			}
-			for flag in models.FeatureFlag.objects.all()
-		]
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    email = serializers.EmailField()
+    first_name = serializers.CharField(allow_blank=True)
+    last_name = serializers.CharField(allow_blank=True)
+    title = serializers.CharField(allow_blank=True)
+    timezone = serializers.CharField()
+    locale = serializers.CharField()
+    organization = serializers.SerializerMethodField()
+    feature_flags = serializers.SerializerMethodField()
+
+    def get_organization(self, obj):  # noqa: D401 - serializer hook
+        organization = obj.organization
+        return {
+            "id": organization.id,
+            "name": organization.name,
+            "slug": organization.slug,
+        }
+
+    def get_feature_flags(self, obj):  # noqa: D401
+        enabled_codes = obj.feature_codes()
+        return [
+            {
+                "code": flag.code,
+                "name": flag.name,
+                "description": flag.description,
+                "enabled": flag.code in enabled_codes,
+            }
+            for flag in models.FeatureFlag.objects.all()
+        ]
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ["first_name", "last_name", "email", "title", "timezone", "locale"]
 
 
 class RegistrationSerializer(serializers.Serializer):
@@ -188,8 +197,22 @@ class RegistrationSerializer(serializers.Serializer):
 
 
 class GoogleAuthSerializer(serializers.Serializer):
-	credential = serializers.CharField()
-	organization_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
-	plan_key = serializers.ChoiceField(
-		choices=models.SubscriptionPlan.PLAN_CHOICES, required=False, allow_blank=True
-	)
+    credential = serializers.CharField()
+    organization_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    plan_key = serializers.ChoiceField(
+        choices=models.SubscriptionPlan.PLAN_CHOICES, required=False, allow_blank=True
+    )
+
+
+class ExcelImportSerializer(serializers.Serializer):
+    resource = serializers.ChoiceField(choices=[("contacts", "contacts"), ("products", "products")])
+    file = serializers.FileField()
+
+    def validate_file(self, file):  # type: ignore[override]
+        name = getattr(file, "name", "")
+        if not name or not name.lower().endswith((".xlsx", ".xls", ".csv")):
+            raise serializers.ValidationError("Поддерживаются только файлы Excel или CSV.")
+        max_size = 10 * 1024 * 1024
+        if file.size and file.size > max_size:
+            raise serializers.ValidationError("Размер файла не должен превышать 10 МБ.")
+        return file
