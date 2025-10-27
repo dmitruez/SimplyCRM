@@ -69,9 +69,17 @@ class DataSyncLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 class InsightAnalyticsViewSet(viewsets.ViewSet):
 	"""High-level analytics endpoints that surface derived insights."""
-	
+
 	permission_classes = [permissions.IsAuthenticated, HasFeaturePermission]
 	feature_code = "analytics.insights"
+	feature_code_map = {
+		"rfm": "analytics.customer_segments",
+		"sales_metrics": "analytics.standard",
+		"anomalies": "analytics.insights",
+		"price_recommendations": "analytics.insights",
+		"demand_forecast": "analytics.forecasting",
+		"next_best_actions": "analytics.forecasting",
+	}
 	serializer_class = EmptySerializer
 	
 	@extend_schema(responses=serializers.RfmScoreSerializer(many=True))
