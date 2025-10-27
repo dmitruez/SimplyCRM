@@ -80,6 +80,7 @@ const normalizeSubscription = (subscription: RawSubscriptionSummary): Subscripti
 export const billingApi = {
   async getOverview(): Promise<BillingOverview> {
     const { data } = await apiClient.get<RawBillingOverview>('/billing/overview/');
+    console.log(data)
     return {
       currentSubscription: data.current_subscription ? normalizeSubscription(data.current_subscription) : null,
       availablePlans: data.available_plans.map(normalizePlan),

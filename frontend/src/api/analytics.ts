@@ -181,54 +181,54 @@ const normalizeAnomalies = (rows: RawAnomaly[]): AnalyticsAnomaly[] =>
 
 export const analyticsApi = {
   async getOverview(): Promise<AnalyticsOverviewResponse> {
-    const { data } = await apiClient.get<AnalyticsOverviewResponse>('/api/analytics/overview/');
+    const { data } = await apiClient.get<AnalyticsOverviewResponse>('/analytics/overview/');
     return data;
   },
 
   async getInsights(): Promise<AnalyticsInsight[]> {
-    const { data } = await apiClient.get<RawInsight[]>('/api/insights/');
+    const { data } = await apiClient.get<RawInsight[]>('/insights/');
     return data.map(normalizeInsight);
   },
 
   async getForecasts(): Promise<Forecast[]> {
-    const { data } = await apiClient.get<RawForecast[]>('/api/forecasts/');
+    const { data } = await apiClient.get<RawForecast[]>('/forecasts/');
     return data.map(normalizeForecast);
   },
 
   async getCustomerSegments(): Promise<CustomerSegment[]> {
-    const { data } = await apiClient.get<RawSegment[]>('/api/customer-segments/');
+    const { data } = await apiClient.get<RawSegment[]>('/customer-segments/');
     return data.map(normalizeSegment);
   },
 
   async getPriceRecommendations(): Promise<PriceRecommendationResult> {
     const { data } = await apiClient.get<RawPriceRecommendationResult>(
-      '/api/insight-analytics/price-recommendations/'
+      '/insight-analytics/price-recommendations/'
     );
     return normalizePriceRecommendations(data);
   },
 
   async getDemandForecast(): Promise<DemandForecast> {
-    const { data } = await apiClient.get<RawDemandForecast>('/api/insight-analytics/demand-forecast/');
+    const { data } = await apiClient.get<RawDemandForecast>('/insight-analytics/demand-forecast/');
     return normalizeDemandForecast(data);
   },
 
   async getNextBestActions(): Promise<NextBestAction[]> {
-    const { data } = await apiClient.get<RawNextBestAction[]>('/api/insight-analytics/next-best-actions/');
+    const { data } = await apiClient.get<RawNextBestAction[]>('/insight-analytics/next-best-actions/');
     return normalizeNextBestActions(data);
   },
 
   async getRfmScores(): Promise<RfmScore[]> {
-    const { data } = await apiClient.get<RawRfmScore[]>('/api/insight-analytics/rfm/');
+    const { data } = await apiClient.get<RawRfmScore[]>('/insight-analytics/rfm/');
     return normalizeRfmScores(data);
   },
 
   async getSalesMetrics(): Promise<SalesMetricTotals> {
-    const { data } = await apiClient.get<RawSalesMetrics>('/api/insight-analytics/sales-metrics/');
+    const { data } = await apiClient.get<RawSalesMetrics>('/insight-analytics/sales-metrics/');
     return normalizeSalesMetrics(data);
   },
 
   async getAnomalies(): Promise<AnalyticsAnomaly[]> {
-    const { data } = await apiClient.get<RawAnomaly[]>('/api/insight-analytics/anomalies/');
+    const { data } = await apiClient.get<RawAnomaly[]>('/insight-analytics/anomalies/');
     return normalizeAnomalies(data);
   }
 };

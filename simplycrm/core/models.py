@@ -53,6 +53,9 @@ class SubscriptionPlan(models.Model):
 	max_deals = models.PositiveIntegerField(default=500)
 	max_api_calls_per_minute = models.PositiveIntegerField(default=120)
 	
+	class Meta:
+		ordering = ["price_per_month", "pk"]
+	
 	def __str__(self) -> str:  # pragma: no cover
 		return self.name
 
@@ -93,7 +96,7 @@ class Subscription(models.Model):
 	"""Active subscription binding a plan to an organization."""
 	
 	organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="subscriptions")
-	plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, related_name="subscriptions")
+	plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT, related_name="plan")
 	started_at = models.DateField()
 	expires_at = models.DateField(null=True, blank=True)
 	is_active = models.BooleanField(default=True)

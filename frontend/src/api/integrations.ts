@@ -97,12 +97,12 @@ const normalizeImportJob = (raw: RawImportJob): ImportJobRecord => ({
 
 export const integrationsApi = {
   async listApiKeys(): Promise<ApiKeyRecord[]> {
-    const { data } = await apiClient.get<RawApiKey[]>('/api/api-keys/');
+    const { data } = await apiClient.get<RawApiKey[]>('/api-keys/');
     return data.map(normalizeApiKey);
   },
 
   async createApiKey(payload: { name: string; key: string; permissions?: string[] }): Promise<ApiKeyRecord> {
-    const { data } = await apiClient.post<RawApiKey>('/api/api-keys/', {
+    const { data } = await apiClient.post<RawApiKey>('/api-keys/', {
       name: payload.name,
       key: payload.key,
       permissions: payload.permissions ?? []

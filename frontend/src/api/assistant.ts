@@ -52,12 +52,12 @@ const normalizeAskResponse = (raw: RawAskResponse): AssistantAskResponse => ({
 
 export const assistantApi = {
   async listConversations(): Promise<AssistantConversation[]> {
-    const { data } = await apiClient.get<RawConversation[]>('/api/ai/conversations/');
+    const { data } = await apiClient.get<RawConversation[]>('/ai/conversations/');
     return data.map(normalizeConversation);
   },
 
   async createConversation(payload: { title: string; systemPrompt?: string }): Promise<AssistantConversation> {
-    const { data } = await apiClient.post<RawConversation>('/api/ai/conversations/', {
+    const { data } = await apiClient.post<RawConversation>('/ai/conversations/', {
       title: payload.title,
       system_prompt: payload.systemPrompt ?? null
     });
@@ -65,7 +65,7 @@ export const assistantApi = {
   },
 
   async ask(conversationId: number, prompt: string): Promise<AssistantAskResponse> {
-    const { data } = await apiClient.post<RawAskResponse>(`/api/ai/conversations/${conversationId}/ask/`, {
+    const { data } = await apiClient.post<RawAskResponse>(`/ai/conversations/${conversationId}/ask/`, {
       prompt
     });
     return normalizeAskResponse(data);
