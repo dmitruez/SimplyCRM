@@ -54,13 +54,14 @@ export const StatusBadge = ({
                                 tone = 'neutral'
                             }: {
     status: string;
-    tone?: 'neutral' | 'success' | 'warning';
+    tone?: 'neutral' | 'success' | 'warning' | 'info';
 }) => (
     <span
         className={clsx(styles.badge, {
             [styles.badgeNeutral]: tone === 'neutral',
             [styles.badgeSuccess]: tone === 'success',
-            [styles.badgeWarning]: tone === 'warning'
+            [styles.badgeWarning]: tone === 'warning',
+            [styles.badgeInfo]: tone === 'info'
         })}
     >
     {status}

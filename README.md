@@ -75,6 +75,15 @@ through `HasFeaturePermission`.
 - HTTPS hardening flags (HSTS, secure cookies, referrer policy) are enabled automatically when `DJANGO_DEBUG=0`.
   Override `DJANGO_SECURE_*` variables for production deployments behind load balancers.
 
+## API Modules & Documentation
+
+- Feature-specific routers are now available under dedicated namespaces: `/api/catalog/`, `/api/sales/`,
+  `/api/analytics/`, `/api/automation/`, `/api/integrations/`, and `/api/assistant/`. The legacy aggregated
+  `/api/<resource>/` routes remain for backwards compatibility.
+- Interact with every API using the `Authorization: Token <personal-or-workspace-key>` header. Enterprise workspaces can
+  mint scoped keys via `POST /api/integrations/api-keys/`.
+- A human-friendly overview of high-value endpoints per subscription tier is available in [`docs/API_GUIDE.md`](docs/API_GUIDE.md).
+
 ### Registration & Social Login
 
 - Self-service signups are available at `POST /api/auth/register/`. Provide an `email`, `password`, and

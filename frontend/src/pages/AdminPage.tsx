@@ -52,9 +52,10 @@ export const AdminPage = () => {
   const queryClient = useQueryClient();
   const { profile, status } = useAuthContext();
 
-  const isAdmin = Boolean(
+  const hasAdminFlag = Boolean(
     profile?.featureFlags?.some((flag) => flag.code === 'admin.panel' && flag.enabled)
   );
+  const isAdmin = hasAdminFlag || Boolean(profile?.isStaff) || Boolean(profile?.isSuperuser);
 
   const { data: overview, isLoading: isOverviewLoading } = useQuery({
     queryKey: ['admin', 'overview'],
@@ -196,7 +197,8 @@ export const AdminPage = () => {
           <h1>Нет доступа к административной панели</h1>
           <p>
             Для управления тарифами и просмотром аналитики необходимо получить право{' '}
-            <strong>admin.panel</strong>. Обратитесь к владельцу организации или поддержке SimplyCRM.
+            <strong>admin.panel</strong>. Владельцы организаций и сотрудники SimplyCRM получают доступ автоматически —
+            обратитесь к владельцу организации или поддержке SimplyCRM для выдачи прав.
           </p>
         </Card>
       </div>

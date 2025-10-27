@@ -126,6 +126,8 @@ class UserProfileSerializer(serializers.Serializer):
     title = serializers.CharField(allow_blank=True)
     timezone = serializers.CharField()
     locale = serializers.CharField()
+    is_staff = serializers.BooleanField()
+    is_superuser = serializers.BooleanField()
     organization = serializers.SerializerMethodField()
     feature_flags = serializers.SerializerMethodField()
 

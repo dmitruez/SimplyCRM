@@ -7,3 +7,8 @@ from simplycrm.assistant import views
 
 router = routers.DefaultRouter()
 router.register(r"ai/conversations", views.AIConversationViewSet, basename="ai-conversation")
+
+
+app_name = "assistant"
+
+urlpatterns = router.urls

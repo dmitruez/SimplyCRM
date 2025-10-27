@@ -11,3 +11,8 @@ router.register(r"webhook-subscriptions", viewsets.WebhookSubscriptionViewSet, b
 router.register(r"integration-connections", viewsets.IntegrationConnectionViewSet, basename="integration-connection")
 router.register(r"integration-logs", viewsets.IntegrationLogViewSet, basename="integration-log")
 router.register(r"import-jobs", viewsets.ImportJobViewSet, basename="import-job")
+
+
+app_name = "integrations"
+
+urlpatterns = router.urls

@@ -1,6 +1,6 @@
 .wrapper {
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: 1100px;
+  margin: 0 auto 4rem;
   display: grid;
   gap: 2rem;
 }
@@ -9,16 +9,21 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
-.header h1 {
-  margin-bottom: 0.5rem;
+.introText {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.introText h1 {
+  margin: 0;
 }
 
 .tokenSection,
-.methodsSection,
-.examplesSection {
+.planSection,
+.guideSection {
   background: white;
   border-radius: 16px;
   padding: 1.75rem;
@@ -39,36 +44,228 @@
   font-size: 0.95rem;
 }
 
-.methodList {
+.planList {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
-.methodList li {
+.planList li {
   display: grid;
   gap: 0.35rem;
   border-left: 4px solid rgba(4, 62, 140, 0.35);
   padding-left: 1rem;
 }
 
-.methodList strong {
+.planList strong {
   font-size: 1rem;
 }
 
-.examplesSection pre {
-  background: rgba(15, 23, 42, 0.9);
+.guideSection pre {
+  background: rgba(15, 23, 42, 0.92);
   color: white;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   border-radius: 12px;
   font-size: 0.9rem;
   overflow-x: auto;
+  line-height: 1.45;
 }
 
-@media (max-width: 640px) {
+.documentation {
+  display: grid;
+  gap: 3rem;
+}
+
+.docSection {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.docHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.basePath {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.basePathLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(15, 23, 42, 0.55);
+}
+
+.basePath code {
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 10px;
+  padding: 0.4rem 0.65rem;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.resourceGrid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.resourceCard {
+  background: white;
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 1rem;
+}
+
+.resourceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.resourceHeader h3 {
+  margin: 0;
+}
+
+.resourcePath {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.82rem;
+  background: rgba(14, 95, 216, 0.08);
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+}
+
+.featureBadge {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(14, 95, 216, 0.95);
+  background: rgba(14, 95, 216, 0.12);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.operationList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.operationItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.methodBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  color: white;
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.methodGET {
+  background: rgba(2, 132, 199, 0.95);
+}
+
+.methodPOST {
+  background: rgba(34, 197, 94, 0.9);
+}
+
+.methodPUT,
+.methodPATCH {
+  background: rgba(249, 115, 22, 0.9);
+}
+
+.methodDELETE {
+  background: rgba(239, 68, 68, 0.95);
+}
+
+.methodFallback {
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.operationBody {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.operationTitle {
+  font-size: 0.95rem;
+}
+
+.operationPath {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.85rem;
+  background: rgba(15, 23, 42, 0.05);
+  padding: 0.25rem 0.45rem;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
   .header {
     flex-direction: column;
+  }
+
+  .operationItem {
+    grid-template-columns: 1fr;
+  }
+
+  .resourceGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .tokenSection,
+  .planSection,
+  .guideSection,
+  .resourceCard {
+    background: rgba(15, 23, 42, 0.7);
+    color: rgba(248, 250, 252, 0.95);
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  .tokenBox {
+    background: rgba(15, 23, 42, 0.4);
+  }
+
+  .guideSection pre {
+    background: rgba(15, 23, 42, 0.9);
+  }
+
+  .basePath code,
+  .operationPath {
+    background: rgba(15, 23, 42, 0.6);
+    color: rgba(241, 245, 249, 0.95);
+  }
+
+  .featureBadge {
+    background: rgba(56, 189, 248, 0.18);
+    color: rgba(125, 211, 252, 0.95);
   }
 }

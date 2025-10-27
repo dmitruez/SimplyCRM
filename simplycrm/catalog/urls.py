@@ -12,3 +12,8 @@ router.register(r"products", viewsets.ProductViewSet, basename="product")
 router.register(r"product-variants", viewsets.ProductVariantViewSet, basename="product-variant")
 router.register(r"inventory-lots", viewsets.InventoryLotViewSet, basename="inventory-lot")
 router.register(r"price-history", viewsets.PriceHistoryViewSet, basename="price-history")
+
+
+app_name = "catalog"
+
+urlpatterns = router.urls

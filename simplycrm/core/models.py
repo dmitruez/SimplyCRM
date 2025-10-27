@@ -160,9 +160,12 @@ class User(AbstractUser):
 	
 	def feature_codes(self) -> set[str]:
 		active_subscription = self.organization.subscriptions.filter(is_active=True).order_by("-started_at").first()
-		if not active_subscription:
-			return set()
-		return set(active_subscription.plan.feature_flags.values_list("code", flat=True))
+		codes: set[str] = set()
+		if active_subscription:
+			codes.update(active_subscription.plan.feature_flags.values_list("code", flat=True))
+		if self.is_staff or self.is_superuser:
+			codes.add("admin.panel")
+		return codes
 	
 	def has_feature(self, feature_code: str) -> bool:
 		return feature_code in self.feature_codes()
