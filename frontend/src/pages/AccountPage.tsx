@@ -75,16 +75,24 @@ export const AccountPage = () => {
     }
   });
 
-    if (!isAuthenticated || !profile) {
-        return <p>Для просмотра профиля необходимо войти.</p>;
+  const formatDate = (value?: string | null) => {
+    if (!value) {
+      return '—';
     }
+    return new Date(value).toLocaleDateString('ru-RU');
+  };
+
+  if (!isAuthenticated || !profile) {
+    return <p>Для просмотра профиля необходимо войти.</p>;
+  }
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     profileMutation.mutate({ ...formState });
   };
 
-  const currentPlanKey = billing?.currentSubscription?.plan.key;
+  const currentSubscription = billing?.currentSubscription ?? null;
+  const currentPlanKey = currentSubscription?.plan.key;
 
   const sortedPlans = useMemo(() => {
     if (!billing) {
@@ -188,27 +196,56 @@ export const AccountPage = () => {
           {isBillingLoading ? (
             <p>Загружаем информацию о подписке…</p>
           ) : billing ? (
-            <div className={styles.planList}>
-              {sortedPlans.map((plan) => {
-                const isActive = plan.key === currentPlanKey;
-                return (
-                  <div key={plan.id} className={styles.planItem} data-active={isActive}>
-                    <div>
-                      <strong>{plan.name}</strong>
-                      <span className={styles.planPrice}>{plan.pricePerMonth === 0 ? 'Бесплатно' : `${plan.pricePerMonth.toLocaleString('ru-RU')} ₽/мес`}</span>
-                      <small>{plan.description}</small>
+            <>
+              <div
+                className={styles.currentPlan}
+                data-variant={currentSubscription ? 'active' : 'inactive'}
+              >
+                {currentSubscription ? (
+                  <>
+                    <span>
+                      Активный тариф: <strong>{currentSubscription.plan.name}</strong>
+                    </span>
+                    <small>
+                      С {formatDate(currentSubscription.startedAt)}
+                      {currentSubscription.expiresAt
+                        ? ` по ${formatDate(currentSubscription.expiresAt)}`
+                        : ' (без даты окончания)'}
+                    </small>
+                  </>
+                ) : (
+                  <>
+                    <span>Активная подписка не найдена.</span>
+                    <small>Выберите подходящий план ниже, чтобы активировать платные функции.</small>
+                  </>
+                )}
+              </div>
+              <div className={styles.planList}>
+                {sortedPlans.map((plan) => {
+                  const isActive = plan.key === currentPlanKey;
+                  return (
+                    <div key={plan.id} className={styles.planItem} data-active={isActive}>
+                      <div>
+                        <strong>{plan.name}</strong>
+                        <span className={styles.planPrice}>
+                          {plan.pricePerMonth === 0
+                            ? 'Бесплатно'
+                            : `${plan.pricePerMonth.toLocaleString('ru-RU')} ₽/мес`}
+                        </span>
+                        <small>{plan.description}</small>
+                      </div>
+                      <Button
+                        variant={isActive ? 'secondary' : 'primary'}
+                        disabled={isActive || planMutation.isPending}
+                        onClick={() => planMutation.mutate(plan.key)}
+                      >
+                        {isActive ? 'Активный план' : 'Перейти на план'}
+                      </Button>
                     </div>
-                    <Button
-                      variant={isActive ? 'secondary' : 'primary'}
-                      disabled={isActive || planMutation.isPending}
-                      onClick={() => planMutation.mutate(plan.key)}
-                    >
-                      {isActive ? 'Активный план' : 'Перейти на план'}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           ) : (
             <p>Не удалось загрузить тарифы. Попробуйте позже.</p>
           )}

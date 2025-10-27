@@ -73,6 +73,26 @@
   gap: 1rem;
 }
 
+.currentPlan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 14px;
+  background: rgba(4, 62, 140, 0.08);
+  border: 1px solid rgba(4, 62, 140, 0.14);
+}
+
+.currentPlan[data-variant='inactive'] {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.currentPlan small {
+  color: rgba(15, 23, 42, 0.7);
+}
+
 .planItem {
   display: flex;
   justify-content: space-between;
