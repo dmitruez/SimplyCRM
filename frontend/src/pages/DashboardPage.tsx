@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import styles from './DashboardPage.module.css';
 import { Button } from '../components/ui/Button';
@@ -113,6 +113,7 @@ const generateApiKey = () => `sim_${Math.random().toString(36).slice(2, 10)}${Da
 export const DashboardPage = () => {
   const { profile } = useAuthContext();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [noteContent, setNoteContent] = useState('');
   const [noteRelated, setNoteRelated] = useState('');
   const [ruleDraft, setRuleDraft] = useState({
@@ -151,6 +152,15 @@ export const DashboardPage = () => {
   );
 
   const hasFeature = useCallback((code: string) => featureSet.has(code), [featureSet]);
+  const canAccessAdmin = useMemo(
+    () =>
+      Boolean(
+        profile?.isStaff ||
+          profile?.isSuperuser ||
+          profile?.featureFlags?.some((flag) => flag.code === 'admin.panel' && flag.enabled)
+      ),
+    [profile?.featureFlags, profile?.isStaff, profile?.isSuperuser]
+  );
 
   const parseJsonInput = useCallback(
     <T,>(value: string, fallback: T, label: string): T | null => {
@@ -684,9 +694,20 @@ export const DashboardPage = () => {
           <h1>Рабочее пространство SimplyCRM</h1>
           <p>Контролируйте продажи, аналитику, автоматизации и интеграции в одном месте.</p>
         </div>
-        <Button className={styles.refreshButton} onClick={() => refetch()} disabled={isFetching}>
-          {isFetching ? 'Обновляем…' : 'Обновить данные'}
-        </Button>
+        <div className={styles.headerActions}>
+          {canAccessAdmin ? (
+            <Button
+              variant="secondary"
+              className={styles.adminButton}
+              onClick={() => navigate('/admin')}
+            >
+              Панель администратора
+            </Button>
+          ) : null}
+          <Button className={styles.refreshButton} onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? 'Обновляем…' : 'Обновить данные'}
+          </Button>
+        </div>
       </header>
 
       <section className={styles.summaryGrid}>

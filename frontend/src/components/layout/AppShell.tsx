@@ -16,7 +16,8 @@ const navLinkClassName = ({isActive}: { isActive: boolean }) =>
 export const AppShell = ({children}: AppShellProps) => {
     const {status, logout, profile} = useAuthContext();
     const isAuthenticated = status === 'authenticated';
-    const isAdmin = profile?.featureFlags?.some((flag) => flag.code === 'admin.panel' && flag.enabled);
+    const hasAdminFeature = profile?.featureFlags?.some((flag) => flag.code === 'admin.panel' && flag.enabled);
+    const isAdmin = Boolean(hasAdminFeature || profile?.isStaff || profile?.isSuperuser);
 
     return (
         <div className={styles.wrapper}>

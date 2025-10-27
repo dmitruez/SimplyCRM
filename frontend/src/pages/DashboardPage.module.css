@@ -73,6 +73,17 @@
     color: var(--color-text-secondary);
 }
 
+.headerActions {
+    display: flex;
+    gap: var(--space-sm);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.adminButton {
+    white-space: nowrap;
+}
+
 .refreshButton {
     white-space: nowrap;
     align-self: flex-start;
