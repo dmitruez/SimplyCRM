@@ -196,9 +196,7 @@ class BillingOverviewView(APIView):
 	
 	def get(self, request, *args, **kwargs):  # type: ignore[override]
 		organization = request.user.organization
-		current_subscription = (
-			organization.subscriptions.filter(is_active=True).select_related("plan").order_by("-started_at").first()
-		)
+		current_subscription = organization.current_subscription()
 		plans = core_models.SubscriptionPlan.objects.all().order_by("price_per_month")
 		api_token, _ = Token.objects.get_or_create(user=request.user)
 		
@@ -246,16 +244,14 @@ class ChangeSubscriptionPlanView(APIView):
 		
 		organization = request.user.organization
 		today = date.today()
-		current_subscription = (
-			organization.subscriptions.filter(is_active=True).select_related("plan").order_by("-started_at").first()
-		)
+		current_subscription = organization.current_subscription(today)
 		
 		if current_subscription and current_subscription.plan_id == plan.id:
 			data = SubscriptionSerializer(current_subscription, context={"request": request}).data
 			return Response({"detail": "Вы уже используете этот тариф.", "subscription": data},
 			                status=status.HTTP_200_OK)
 		
-		organization.subscriptions.filter(is_active=True).update(is_active=False, expires_at=today)
+		organization.subscriptions.valid_on(today).update(is_active=False, expires_at=today)
 		
 		subscription = core_models.Subscription.objects.create(
 			organization=organization,

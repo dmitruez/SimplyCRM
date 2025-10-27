@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Q
 
 
 class Organization(models.Model):
@@ -20,6 +21,15 @@ class Organization(models.Model):
 	
 	def __str__(self) -> str:  # pragma: no cover - repr helper
 		return self.name
+
+	def current_subscription(self, day: date | None = None) -> "Subscription | None":
+		"""Return the latest subscription that is valid for the requested day."""
+
+		return (
+			self.subscriptions.current(day)
+			.select_related("plan")
+			.first()
+		)
 
 
 class SubscriptionPlan(models.Model):
@@ -64,6 +74,21 @@ class FeatureFlag(models.Model):
 		return self.code
 
 
+class SubscriptionQuerySet(models.QuerySet):
+	"""Custom queryset with helpers to determine active subscriptions."""
+
+	def valid_on(self, day: date | None = None):
+		day = day or date.today()
+		return self.filter(started_at__lte=day).filter(
+			Q(is_active=True, expires_at__isnull=True)
+			| Q(is_active=True, expires_at__gte=day)
+			| Q(is_active=False, expires_at__isnull=False, expires_at__gte=day)
+		)
+
+	def current(self, day: date | None = None):
+		return self.valid_on(day).order_by("-started_at")
+
+
 class Subscription(models.Model):
 	"""Active subscription binding a plan to an organization."""
 	
@@ -72,7 +97,8 @@ class Subscription(models.Model):
 	started_at = models.DateField()
 	expires_at = models.DateField(null=True, blank=True)
 	is_active = models.BooleanField(default=True)
-	
+
+	objects = SubscriptionQuerySet.as_manager()
 	
 	class Meta:
 		ordering = ["-started_at"]
@@ -159,7 +185,7 @@ class User(AbstractUser):
 	objects = OrganizationAwareUserManager()
 	
 	def feature_codes(self) -> set[str]:
-		active_subscription = self.organization.subscriptions.filter(is_active=True).order_by("-started_at").first()
+		active_subscription = self.organization.current_subscription()
 		codes: set[str] = set()
 		if active_subscription:
 			codes.update(active_subscription.plan.feature_flags.values_list("code", flat=True))
