@@ -13,6 +13,7 @@ import { analyticsApi } from '../api/analytics';
 import { automationApi } from '../api/automation';
 import { integrationsApi } from '../api/integrations';
 import { assistantApi } from '../api/assistant';
+import { billingApi } from '../api/billing';
 import { useAuthContext } from '../providers/AuthProvider';
 import { notificationBus } from '../components/notifications/notificationBus';
 import {
@@ -88,24 +89,82 @@ const shipmentTone = (status: string): 'neutral' | 'success' | 'warning' => {
   return 'neutral';
 };
 
-const featurePlanMap: Record<string, string> = {
-  'billing.invoices': 'Pro',
-  'billing.payments': 'Pro',
-  'logistics.shipments': 'Pro',
-  'analytics.standard': 'Pro',
-  'analytics.forecasting': 'Pro',
-  'analytics.customer_segments': 'Pro',
-  'analytics.insights': 'Enterprise',
-  'automation.core': 'Enterprise',
-  'automation.rules': 'Enterprise',
-  'automation.campaigns': 'Enterprise',
-  'automation.notifications': 'Enterprise',
-  'automation.webhooks': 'Enterprise',
-  'integrations.core': 'Enterprise',
-  'integrations.api_keys': 'Enterprise',
-  'integrations.webhooks': 'Enterprise',
-  'integrations.connectors': 'Enterprise',
-  'integrations.imports': 'Enterprise'
+type PlanKey = 'free' | 'pro' | 'enterprise';
+
+const PLAN_ORDER: readonly PlanKey[] = ['free', 'pro', 'enterprise'];
+
+const PLAN_DISPLAY_NAME: Record<PlanKey, string> = {
+  free: 'Free',
+  pro: 'Pro',
+  enterprise: 'Enterprise'
+};
+
+const FREE_PLAN_FEATURES: readonly string[] = ['catalog.read', 'sales.pipeline', 'assistant.chat'];
+
+const PRO_PLAN_ADDITIONAL_FEATURES: readonly string[] = [
+  'catalog.manage',
+  'catalog.manage_suppliers',
+  'inventory.advanced_tracking',
+  'pricing.history_view',
+  'sales.advanced_pipeline',
+  'sales.order_management',
+  'billing.invoices',
+  'billing.payments',
+  'logistics.shipments',
+  'analytics.standard',
+  'analytics.custom_metrics',
+  'analytics.forecasting',
+  'analytics.customer_segments'
+];
+
+const ENTERPRISE_PLAN_ADDITIONAL_FEATURES: readonly string[] = [
+  'billing.manage_subscriptions',
+  'analytics.mlops',
+  'analytics.integrations',
+  'analytics.insights',
+  'automation.core',
+  'automation.rules',
+  'automation.campaigns',
+  'automation.notifications',
+  'automation.webhooks',
+  'integrations.core',
+  'integrations.api_keys',
+  'integrations.webhooks',
+  'integrations.connectors',
+  'integrations.imports',
+  'compliance.audit_logs'
+];
+
+const PLAN_FEATURES: Record<PlanKey, ReadonlySet<string>> = {
+  free: new Set(FREE_PLAN_FEATURES),
+  pro: new Set([...FREE_PLAN_FEATURES, ...PRO_PLAN_ADDITIONAL_FEATURES]),
+  enterprise: new Set([
+    ...FREE_PLAN_FEATURES,
+    ...PRO_PLAN_ADDITIONAL_FEATURES,
+    ...ENTERPRISE_PLAN_ADDITIONAL_FEATURES
+  ])
+};
+
+const FEATURE_PLAN_REQUIREMENT: Record<string, PlanKey> = {
+  'assistant.chat': 'free',
+  'sales.order_management': 'pro',
+  'billing.invoices': 'pro',
+  'billing.payments': 'pro',
+  'logistics.shipments': 'pro',
+  'analytics.standard': 'pro',
+  'analytics.forecasting': 'pro',
+  'analytics.customer_segments': 'pro',
+  'analytics.insights': 'enterprise',
+  'automation.core': 'enterprise',
+  'automation.rules': 'enterprise',
+  'automation.campaigns': 'enterprise',
+  'automation.notifications': 'enterprise',
+  'automation.webhooks': 'enterprise',
+  'integrations.core': 'enterprise',
+  'integrations.api_keys': 'enterprise',
+  'integrations.webhooks': 'enterprise',
+  'integrations.connectors': 'enterprise',
+  'integrations.imports': 'enterprise'
 };
 
 const generateApiKey = () => `sim_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
@@ -141,6 +200,21 @@ export const DashboardPage = () => {
   const [messageInput, setMessageInput] = useState('');
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
 
+  const { data: billingOverview } = useQuery({
+    queryKey: ['billing', 'overview', 'entitlements'],
+    queryFn: billingApi.getOverview,
+    enabled: Boolean(profile),
+    staleTime: 5 * 60 * 1000
+  });
+
+  const activePlanKey = useMemo<PlanKey | null>(() => {
+    const planKey = billingOverview?.currentSubscription?.plan.key?.toLowerCase();
+    if (planKey === 'free' || planKey === 'pro' || planKey === 'enterprise') {
+      return planKey;
+    }
+    return null;
+  }, [billingOverview?.currentSubscription?.plan.key]);
+
   const featureSet = useMemo(
     () =>
       new Set(
@@ -151,7 +225,30 @@ export const DashboardPage = () => {
     [profile?.featureFlags]
   );
 
-  const hasFeature = useCallback((code: string) => featureSet.has(code), [featureSet]);
+  const hasFeature = useCallback(
+    (code: string) => {
+      if (featureSet.has(code)) {
+        return true;
+      }
+
+      if (!activePlanKey) {
+        return false;
+      }
+
+      const planFeatures = PLAN_FEATURES[activePlanKey];
+      if (planFeatures?.has(code)) {
+        return true;
+      }
+
+      const requiredPlan = FEATURE_PLAN_REQUIREMENT[code];
+      if (!requiredPlan) {
+        return false;
+      }
+
+      return PLAN_ORDER.indexOf(activePlanKey) >= PLAN_ORDER.indexOf(requiredPlan);
+    },
+    [activePlanKey, featureSet]
+  );
   const canAccessAdmin = useMemo(
     () =>
       Boolean(
@@ -657,14 +754,25 @@ export const DashboardPage = () => {
     [currencyFormatter]
   );
 
-  const renderFeatureGate = (code: string) => (
-    <div className={styles.featureGate}>
-      <p>
-        Функция доступна на тарифе {featurePlanMap[code] ?? 'Pro'}.{' '}
-        <Link to="/pricing">Обновить тариф →</Link>
-      </p>
-    </div>
-  );
+  const renderFeatureGate = (code: string) => {
+    const requiredPlan = (FEATURE_PLAN_REQUIREMENT[code] ?? 'pro') as PlanKey;
+    const requirementLabel = PLAN_DISPLAY_NAME[requiredPlan];
+    const activeLabel = activePlanKey ? PLAN_DISPLAY_NAME[activePlanKey] : null;
+    const needsUpgrade = Boolean(
+      activePlanKey && PLAN_ORDER.indexOf(activePlanKey) < PLAN_ORDER.indexOf(requiredPlan)
+    );
+    const showUpgradeLink = needsUpgrade || !activePlanKey;
+
+    return (
+      <div className={styles.featureGate}>
+        <p>
+          Функция доступна на тарифе {requirementLabel}.
+          {activeLabel ? ` Ваш текущий тариф: ${activeLabel}.` : ''}{' '}
+          {showUpgradeLink ? <Link to="/pricing">Обновить тариф →</Link> : null}
+        </p>
+      </div>
+    );
+  };
   if (isLoading) {
     return (
       <div className={styles.state}>
