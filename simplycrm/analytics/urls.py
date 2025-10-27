@@ -16,3 +16,8 @@ router.register(r"model-training-runs", viewsets.ModelTrainingRunViewSet, basena
 router.register(r"data-sources", viewsets.DataSourceViewSet, basename="data-source")
 router.register(r"data-sync-logs", viewsets.DataSyncLogViewSet, basename="data-sync-log")
 router.register(r"insight-analytics", viewsets.InsightAnalyticsViewSet, basename="insight-analytics")
+
+
+app_name = "analytics"
+
+urlpatterns = router.urls

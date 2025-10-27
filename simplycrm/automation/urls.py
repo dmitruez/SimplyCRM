@@ -11,3 +11,8 @@ router.register(r"campaigns", viewsets.CampaignViewSet, basename="campaign")
 router.register(r"campaign-steps", viewsets.CampaignStepViewSet, basename="campaign-step")
 router.register(r"notifications", viewsets.NotificationViewSet, basename="notification")
 router.register(r"webhook-events", viewsets.WebhookEventViewSet, basename="webhook-event")
+
+
+app_name = "automation"
+
+urlpatterns = router.urls

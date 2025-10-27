@@ -23,6 +23,8 @@ interface RawUserProfile {
         slug: string;
     };
     feature_flags?: RawFeatureFlag[];
+    is_staff?: boolean;
+    is_superuser?: boolean;
 }
 
 interface AuthSuccessResponse {
@@ -119,6 +121,8 @@ export const authApi = {
             slug: profile.organization.slug
           }
         : undefined,
+      isStaff: Boolean(profile.is_staff),
+      isSuperuser: Boolean(profile.is_superuser),
       featureFlags: (profile.feature_flags ?? []).map((flag) => ({
         code: flag.code,
         name: flag.name,

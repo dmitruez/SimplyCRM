@@ -531,6 +531,11 @@
   border-color: rgba(22, 163, 74, 0.2);
 }
 
+.activityItem[data-tone='info'] {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
 .activityItem[data-tone='warning'] {
   background: rgba(249, 115, 22, 0.08);
   border-color: rgba(249, 115, 22, 0.2);

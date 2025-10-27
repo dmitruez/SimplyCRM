@@ -20,3 +20,8 @@ router.register(r"payments", viewsets.PaymentViewSet, basename="payment")
 router.register(r"shipments", viewsets.ShipmentViewSet, basename="shipment")
 router.register(r"notes", viewsets.NoteViewSet, basename="note")
 router.register(r"attachments", viewsets.AttachmentViewSet, basename="attachment")
+
+
+app_name = "sales"
+
+urlpatterns = router.urls

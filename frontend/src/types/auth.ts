@@ -21,6 +21,8 @@ export interface UserProfile {
   timezone?: string;
   locale?: string;
   organization?: OrganizationSummary;
+  isStaff: boolean;
+  isSuperuser: boolean;
   featureFlags: FeatureFlag[];
 }
 
