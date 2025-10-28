@@ -1,345 +1,137 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
 import clsx from 'clsx';
 
 import styles from './DashboardPage.module.css';
 import { Button } from '../components/ui/Button';
-
-interface NavItem {
-  id: SectionKey;
-  label: string;
-  description: string;
-}
-
-type SectionKey =
-  | 'overview'
-  | 'roles'
-  | 'audit'
-  | 'orders'
-  | 'payments'
-  | 'analytics'
-  | 'support';
-
-type StatusTone = 'neutral' | 'warning' | 'success';
-type ThemeMode = 'light' | 'dark';
+import { dashboardApi } from '../api/dashboard';
+import { salesApi } from '../api/sales';
+import { catalogApi } from '../api/catalog';
+import { coreApi } from '../api/core';
+import { notificationBus } from '../components/notifications/notificationBus';
+import type { DashboardOverview } from '../types/dashboard';
+import type { SalesContact, PurchaseRecord, InvoiceRecord, PaymentRecord } from '../types/sales';
+import type { CoreUser, UserRoleRecord } from '../types/core';
+import type { Product } from '../types/catalog';
 
 const THEME_STORAGE_KEY = 'simplycrm-dashboard-theme';
 
-const NAV_ITEMS: NavItem[] = [
-  { id: 'overview', label: 'Обзор', description: 'главная панель' },
-  { id: 'roles', label: 'Роли и доступ', description: 'правила и фичи' },
-  { id: 'audit', label: 'Аудит', description: 'лог действий' },
-  { id: 'orders', label: 'Заказы', description: 'воронка и статусы' },
-  { id: 'payments', label: 'Оплаты', description: 'транзакции' },
-  { id: 'analytics', label: 'Аналитика', description: 'показатели' },
-  { id: 'support', label: 'Поддержка', description: 'чек-листы' }
-];
+type ThemeMode = 'light' | 'dark';
+type SectionKey = 'overview' | 'roles' | 'audit' | 'orders' | 'payments' | 'analytics' | 'support';
+type StatusTone = 'neutral' | 'warning' | 'success';
 
-interface HighlightMetric {
-  id: string;
-  label: string;
-  value: string;
-  hint: string;
+type RoleCode = 'admin' | 'manager' | 'analyst' | 'marketer';
+
+interface RoleDefinition {
+  code: RoleCode;
+  title: string;
+  level: string;
+  description: string;
+  highlights: string[];
 }
 
-const HIGHLIGHT_METRICS: HighlightMetric[] = [
+const ROLE_DEFINITIONS: RoleDefinition[] = [
   {
-    id: 'clients',
-    label: 'Активные клиенты',
-    value: '128',
-    hint: 'Рост на 12% за месяц'
-  },
-  {
-    id: 'orders',
-    label: 'Заказы в работе',
-    value: '42',
-    hint: '12 ожидают оплаты, 8 к выдаче'
-  },
-  {
-    id: 'revenue',
-    label: 'Выручка месяца',
-    value: '2.8 млн ₽',
-    hint: 'Оплачено 86% выставленных счетов'
-  }
-];
-
-interface RoleCard {
-  role: string;
-  purpose: string;
-  level: 'Полный доступ' | 'Ограниченный доступ' | 'Только чтение';
-  permissions: string[];
-  featureFlags: string[];
-}
-
-const ROLE_MATRIX: RoleCard[] = [
-  {
-    role: 'Менеджер продаж',
-    purpose: 'Ведёт сделки от заявки до оплаты',
-    level: 'Ограниченный доступ',
-    permissions: [
-      'Создание и обновление сделок',
-      'Назначение ответственных',
-      'Просмотр аналитики по своим клиентам'
-    ],
-    featureFlags: ['sales.pipeline', 'sales.order_management', 'analytics.standard']
-  },
-  {
-    role: 'Финансовый контролёр',
-    purpose: 'Отвечает за оплату и акты',
+    code: 'admin',
+    title: 'Администратор',
     level: 'Полный доступ',
-    permissions: [
-      'Выставление счетов и актов',
-      'Подтверждение поступлений',
-      'Возвраты и комментарии по оплатам'
-    ],
-    featureFlags: ['billing.invoices', 'billing.payments', 'compliance.audit']
+    description: 'Управляет пользователями, тарифами и аудитом.',
+    highlights: ['Создание и удаление ролей', 'Просмотр журналов аудита', 'Настройка тарифов и ограничений']
   },
   {
-    role: 'Операционный менеджер',
-    purpose: 'Следит за выполнением заказов',
+    code: 'manager',
+    title: 'Менеджер продаж',
     level: 'Ограниченный доступ',
-    permissions: [
-      'Назначение задач исполнителям',
-      'Отслеживание готовности',
-      'Автопереход статусов без скриптов'
-    ],
-    featureFlags: ['fulfilment.tasks', 'orders.timeline', 'notifications.inapp']
+    description: 'Ведёт сделки от заявки до оплаты.',
+    highlights: ['Работа с заказами и оплатами', 'Контроль статусов клиентов', 'Ведение заметок и задач']
   },
   {
-    role: 'Наблюдатель',
-    purpose: 'Отслеживает прогресс и отчёты',
-    level: 'Только чтение',
-    permissions: ['Просмотр заказов и оплат', 'Доступ к сводной аналитике'],
-    featureFlags: ['analytics.overview']
+    code: 'analyst',
+    title: 'Аналитик',
+    level: 'Доступ к отчётам',
+    description: 'Отслеживает показатели и строит прогнозы.',
+    highlights: ['Просмотр показателей воронки', 'Экспорт данных', 'Отчёты по выручке и конверсии']
+  },
+  {
+    code: 'marketer',
+    title: 'Маркетолог',
+    level: 'Доступ по необходимости',
+    description: 'Следит за источниками лидов и компаниями.',
+    highlights: ['Работа с контактами и тегами', 'Загрузка лидов', 'Контроль эффективности кампаний']
   }
 ];
 
-interface AuditRecord {
-  id: string;
-  event: string;
-  actor: string;
-  target: string;
-  timestamp: string;
-  detail: string;
-}
+const ORDER_STATUS_LABELS: Record<string, { title: string; subtitle: string; tone: StatusTone }> = {
+  draft: { title: 'Черновики', subtitle: 'ожидают подтверждения', tone: 'neutral' },
+  pending: { title: 'Ожидают оплаты', subtitle: 'счета отправлены', tone: 'warning' },
+  processing: { title: 'В работе', subtitle: 'готовятся к отгрузке', tone: 'neutral' },
+  fulfilled: { title: 'Выполнены', subtitle: 'доставлены клиенту', tone: 'success' }
+};
 
-const AUDIT_LOG: AuditRecord[] = [
-  {
-    id: '1',
-    event: 'Создана роль «Финансовый контролёр»',
-    actor: 'Ирина Власова',
-    target: 'Организация «Сфера»',
-    timestamp: 'Сегодня, 09:15',
-    detail: 'Добавлены права на оплату и аудит'
-  },
-  {
-    id: '2',
-    event: 'Подтверждён платёж по заказу #542',
-    actor: 'Павел Щукин',
-    target: 'Счёт INV-542',
-    timestamp: 'Вчера, 18:04',
-    detail: 'Сумма 148 000 ₽, онлайн-оплата'
-  },
-  {
-    id: '3',
-    event: 'Изменён статус заказа #538',
-    actor: 'Антон Еремеев',
-    target: 'Заказ #538',
-    timestamp: 'Вчера, 11:22',
-    detail: 'Автоматически переведён в «К выдаче» после готовности'
+const ORDER_STATUSES = Object.keys(ORDER_STATUS_LABELS);
+
+const PAYMENT_PROVIDERS = ['Stripe', 'ЮKassa', 'CloudPayments', 'Manual'];
+
+const CURRENCIES = ['USD', 'EUR', 'RUB'];
+
+const NAV_ITEMS: { id: SectionKey; label: string; description: string }[] = [
+  { id: 'overview', label: 'Обзор', description: 'ключевые цифры' },
+  { id: 'roles', label: 'Роли', description: 'права доступа' },
+  { id: 'audit', label: 'Аудит', description: 'действия пользователей' },
+  { id: 'orders', label: 'Заказы', description: 'воронка и статусы' },
+  { id: 'payments', label: 'Оплаты', description: 'транзакции и счета' },
+  { id: 'analytics', label: 'Аналитика', description: 'метрики и прогнозы' },
+  { id: 'support', label: 'Поддержка', description: 'инструкции и помощь' }
+];
+
+const formatNumber = (value: number | undefined, options?: Intl.NumberFormatOptions) =>
+  new Intl.NumberFormat('ru-RU', options).format(value ?? 0);
+
+const formatCurrency = (value: number | undefined, currency: string) =>
+  new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0
+  }).format(value ?? 0);
+
+const resolveUserName = (user: CoreUser | undefined) => {
+  if (!user) {
+    return 'Неизвестно';
   }
-];
-
-interface OrderCard {
-  id: string;
-  company: string;
-  amount: string;
-  manager: string;
-  due: string;
-  status: string;
-  tone: StatusTone;
-}
-
-interface OrderStage {
-  id: string;
-  title: string;
-  badge: string;
-  orders: OrderCard[];
-}
-
-const ORDER_STAGES: OrderStage[] = [
-  {
-    id: 'new',
-    title: 'Новые заявки',
-    badge: 'ожидают реакции',
-    orders: [
-      {
-        id: '#551',
-        company: 'Альянс',
-        amount: '86 000 ₽',
-        manager: 'Анна Крылова',
-        due: 'Сегодня',
-        status: 'Назначен менеджер',
-        tone: 'neutral'
-      },
-      {
-        id: '#552',
-        company: 'Заря',
-        amount: '64 300 ₽',
-        manager: '—',
-        due: 'Завтра',
-        status: 'Ожидает назначения',
-        tone: 'warning'
-      }
-    ]
-  },
-  {
-    id: 'in_progress',
-    title: 'В работе',
-    badge: 'готовятся документы',
-    orders: [
-      {
-        id: '#542',
-        company: 'ЛайтМедиа',
-        amount: '148 000 ₽',
-        manager: 'Павел Щукин',
-        due: 'Через 2 дня',
-        status: 'Ожидание оплаты',
-        tone: 'warning'
-      },
-      {
-        id: '#538',
-        company: 'ПромТех',
-        amount: '212 400 ₽',
-        manager: 'Антон Еремеев',
-        due: 'К выдаче',
-        status: 'Готов к отгрузке',
-        tone: 'success'
-      }
-    ]
-  },
-  {
-    id: 'completed',
-    title: 'Завершено',
-    badge: 'закрытые сделки',
-    orders: [
-      {
-        id: '#533',
-        company: 'Интегро',
-        amount: '98 600 ₽',
-        manager: 'Мария Румянцева',
-        due: 'Вчера',
-        status: 'Оплачено и доставлено',
-        tone: 'success'
-      }
-    ]
+  const parts = [user.firstName, user.lastName].filter(Boolean);
+  if (parts.length > 0) {
+    return parts.join(' ');
   }
-];
+  return user.username;
+};
 
-interface PaymentRecord {
-  id: string;
-  customer: string;
-  amount: string;
-  method: string;
-  status: string;
-  tone: StatusTone;
-  hint: string;
-}
-
-const PAYMENTS: PaymentRecord[] = [
-  {
-    id: 'INV-542',
-    customer: 'ЛайтМедиа',
-    amount: '148 000 ₽',
-    method: 'Онлайн, карта',
-    status: 'Ожидает подтверждения банка',
-    tone: 'warning',
-    hint: '3-D Secure завершён, проверяем банк'
-  },
-  {
-    id: 'INV-533',
-    customer: 'Интегро',
-    amount: '98 600 ₽',
-    method: 'Онлайн, ЮKassa',
-    status: 'Оплачено',
-    tone: 'success',
-    hint: 'Квитанция отправлена клиенту'
-  },
-  {
-    id: 'INV-527',
-    customer: 'Север',
-    amount: '54 200 ₽',
-    method: 'Безналичный счёт',
-    status: 'Ожидание оплаты',
-    tone: 'warning',
-    hint: 'Напоминание у клиента на завтра'
+const resolveContactName = (contact: SalesContact | undefined) => {
+  if (!contact) {
+    return 'Без контакта';
   }
-];
-
-interface InsightCard {
-  id: string;
-  title: string;
-  value: string;
-  trend: string;
-  detail: string;
-}
-
-const ANALYTICS: InsightCard[] = [
-  {
-    id: 'conversion',
-    title: 'Конверсия воронки',
-    value: '34%',
-    trend: '+6 п.п.',
-    detail: 'Лучше прошлой недели — благодаря коротким срокам ответа'
-  },
-  {
-    id: 'avg_check',
-    title: 'Средний чек',
-    value: '68 400 ₽',
-    trend: '+4%',
-    detail: 'Чаще выбирают расширенный пакет поддержки'
-  },
-  {
-    id: 'debts',
-    title: 'Задолженность',
-    value: '214 000 ₽',
-    trend: '−28%',
-    detail: 'Большинство счетов закрываются в течение 5 дней'
+  const parts = [contact.firstName, contact.lastName].filter(Boolean);
+  if (parts.length > 0) {
+    return parts.join(' ');
   }
-];
-
-const CHECKLIST_STEPS = [
-  'Проверить новые заявки и назначить менеджера',
-  'Просмотреть заказы с ожиданием оплаты',
-  'Убедиться в отправке счётов и актов',
-  'Посмотреть аудит изменений перед еженедельным отчётом'
-];
-
-const SUPPORT_TAGS = [
-  'Обучение сотрудников',
-  'Настройка тарифов',
-  'Загрузка прайс-листов',
-  'Готовые шаблоны отчётов'
-];
-
-const SUPPORT_CONTACTS = [
-  {
-    label: 'Чат с командой SimplyCRM',
-    description: 'Ответ в течение 10 минут'
-  },
-  {
-    label: 'Видеозвонок по внедрению',
-    description: 'Доступен в рабочие дни 10:00–18:00'
+  if (contact.email) {
+    return contact.email;
   }
-];
+  return `Контакт #${contact.id}`;
+};
 
-const toneClass = (tone: StatusTone) => {
-  if (tone === 'success') return styles.statusSuccess;
-  if (tone === 'warning') return styles.statusWarning;
-  return styles.statusNeutral;
+const mapOrderStatus = (order: PurchaseRecord) => {
+  const status = order.status?.toLowerCase();
+  return ORDER_STATUS_LABELS[status] ?? {
+    title: order.status || 'В работе',
+    subtitle: 'обрабатывается вручную',
+    tone: 'neutral' as StatusTone
+  };
 };
 
 export const DashboardPage = () => {
+  const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<SectionKey>('overview');
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === 'undefined') {
@@ -349,14 +141,277 @@ export const DashboardPage = () => {
     return stored === 'dark' ? 'dark' : 'light';
   });
 
-  const summary = useMemo(
-    () => ({
-      overdueOrders: ORDER_STAGES.flatMap((stage) => stage.orders).filter((order) => order.tone === 'warning').length,
-      completedOrders: ORDER_STAGES.flatMap((stage) => stage.orders).filter((order) => order.tone === 'success').length,
-      pendingPayments: PAYMENTS.filter((payment) => payment.tone !== 'success').length
-    }),
-    []
-  );
+  const { data: overview, isLoading: isOverviewLoading } = useQuery<DashboardOverview>({
+    queryKey: ['dashboard', 'overview'],
+    queryFn: dashboardApi.getOverview
+  });
+
+  const { data: users } = useQuery<CoreUser[]>({
+    queryKey: ['core', 'users'],
+    queryFn: coreApi.listUsers
+  });
+
+  const { data: roles } = useQuery<UserRoleRecord[]>({
+    queryKey: ['core', 'roles'],
+    queryFn: coreApi.listUserRoles
+  });
+
+  const { data: auditLogs } = useQuery({
+    queryKey: ['core', 'audit-logs'],
+    queryFn: () => coreApi.listAuditLogs(40)
+  });
+
+  const { data: contacts } = useQuery<SalesContact[]>({
+    queryKey: ['sales', 'contacts'],
+    queryFn: salesApi.listContacts
+  });
+
+  const { data: orders } = useQuery<PurchaseRecord[]>({
+    queryKey: ['sales', 'orders'],
+    queryFn: () => salesApi.listPurchases({ page_size: 40 })
+  });
+
+  const { data: invoices } = useQuery<InvoiceRecord[]>({
+    queryKey: ['sales', 'invoices'],
+    queryFn: salesApi.listInvoices
+  });
+
+  const { data: payments } = useQuery<PaymentRecord[]>({
+    queryKey: ['sales', 'payments'],
+    queryFn: salesApi.listPayments
+  });
+
+  const { data: catalog } = useQuery<{ results: Product[] }>({
+    queryKey: ['catalog', 'dashboard-products'],
+    queryFn: () => catalogApi.listProducts({ pageSize: 40 })
+  });
+
+  const roleForm = useForm<{ userId: string; role: RoleCode }>({
+    defaultValues: { role: 'manager', userId: '' }
+  });
+
+  const contactForm = useForm<{ firstName: string; lastName?: string; email?: string; phoneNumber?: string }>({
+    defaultValues: { firstName: '', lastName: '', email: '', phoneNumber: '' }
+  });
+
+  const orderForm = useForm<{
+    contactId: string;
+    status: string;
+    currency: string;
+    variantId: string;
+    quantity: number;
+    unitPrice: number;
+  }>({
+    defaultValues: { contactId: '', status: 'pending', currency: 'RUB', variantId: '', quantity: 1, unitPrice: 0 }
+  });
+
+  const paymentForm = useForm<{ invoiceId: string; amount: number; provider: string; reference?: string }>({
+    defaultValues: { invoiceId: '', amount: 0, provider: PAYMENT_PROVIDERS[0], reference: '' }
+  });
+
+  const assignRoleMutation = useMutation({
+    mutationFn: coreApi.createUserRole,
+    onSuccess: (createdRole) => {
+      notificationBus.publish({
+        type: 'success',
+        title: 'Роль добавлена',
+        message: 'Пользователь получил новые права доступа.'
+      });
+      roleForm.reset({ role: 'manager', userId: '' });
+      queryClient.setQueryData<UserRoleRecord[] | undefined>(['core', 'roles'], (current) =>
+        current ? [...current, createdRole] : [createdRole]
+      );
+    },
+    onError: () => {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Не удалось назначить роль',
+        message: 'Проверьте данные и попробуйте снова.'
+      });
+    }
+  });
+
+  const removeRoleMutation = useMutation({
+    mutationFn: coreApi.deleteUserRole,
+    onSuccess: (_, roleId) => {
+      notificationBus.publish({
+        type: 'success',
+        title: 'Роль удалена',
+        message: 'Права доступа отозваны.'
+      });
+      queryClient.setQueryData<UserRoleRecord[] | undefined>(['core', 'roles'], (current) =>
+        current?.filter((role) => role.id !== roleId)
+      );
+    },
+    onError: () => {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Не удалось удалить роль',
+        message: 'Попробуйте ещё раз или обратитесь к администратору.'
+      });
+    }
+  });
+
+  const createContactMutation = useMutation({
+    mutationFn: salesApi.createContact,
+    onSuccess: (contact) => {
+      notificationBus.publish({
+        type: 'success',
+        title: 'Контакт сохранён',
+        message: `${resolveContactName(contact)} добавлен в CRM.`
+      });
+      contactForm.reset({ firstName: '', lastName: '', email: '', phoneNumber: '' });
+      queryClient.setQueryData<SalesContact[] | undefined>(['sales', 'contacts'], (current) =>
+        current ? [contact, ...current] : [contact]
+      );
+    },
+    onError: () => {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Контакт не сохранён',
+        message: 'Проверьте обязательные поля и попробуйте снова.'
+      });
+    }
+  });
+
+  const createOrderMutation = useMutation({
+    mutationFn: async (payload: {
+      contactId?: number;
+      status: string;
+      currency: string;
+      variantId?: number;
+      quantity: number;
+      unitPrice: number;
+    }) => {
+      const order = await salesApi.createOrder({
+        contactId: payload.contactId ?? null,
+        status: payload.status,
+        currency: payload.currency
+      });
+      if (payload.variantId) {
+        await salesApi.createOrderLine({
+          orderId: order.id,
+          variantId: payload.variantId,
+          quantity: payload.quantity,
+          unitPrice: payload.unitPrice
+        });
+      }
+      return order;
+    },
+    onSuccess: (order) => {
+      notificationBus.publish({
+        type: 'success',
+        title: 'Заказ создан',
+        message: 'Новый заказ доступен в воронке.'
+      });
+      orderForm.reset({ contactId: '', status: 'pending', currency: 'RUB', variantId: '', quantity: 1, unitPrice: 0 });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'overview'] });
+      queryClient.invalidateQueries({ queryKey: ['sales', 'orders'] });
+    },
+    onError: () => {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Не удалось создать заказ',
+        message: 'Проверьте данные и попробуйте снова.'
+      });
+    }
+  });
+
+  const createPaymentMutation = useMutation({
+    mutationFn: salesApi.createPayment,
+    onSuccess: (payment) => {
+      notificationBus.publish({
+        type: 'success',
+        title: 'Платёж зарегистрирован',
+        message: 'Оплата сохранена и отражена в аналитике.'
+      });
+      paymentForm.reset({ invoiceId: '', amount: 0, provider: PAYMENT_PROVIDERS[0], reference: '' });
+      queryClient.invalidateQueries({ queryKey: ['sales', 'payments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'overview'] });
+    },
+    onError: () => {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Ошибка оплаты',
+        message: 'Не получилось сохранить платёж, попробуйте ещё раз.'
+      });
+    }
+  });
+
+  const userById = useMemo(() => {
+    const map = new Map<number, CoreUser>();
+    (users ?? []).forEach((user) => map.set(user.id, user));
+    return map;
+  }, [users]);
+
+  const roleAssignments = useMemo(() => {
+    const grouped = new Map<RoleCode, CoreUser[]>();
+    (roles ?? []).forEach((assignment) => {
+      const roleCode = assignment.role as RoleCode;
+      const current = grouped.get(roleCode) ?? [];
+      const user = userById.get(assignment.userId);
+      if (user) {
+        current.push(user);
+        grouped.set(roleCode, current);
+      }
+    });
+    return grouped;
+  }, [roles, userById]);
+
+  const productVariants = useMemo(() => {
+    const variants: { id: number; name: string }[] = [];
+    (catalog?.results ?? []).forEach((product) => {
+      product.variants.forEach((variant) => {
+        variants.push({ id: variant.id, name: `${product.name} — ${variant.name}` });
+      });
+    });
+    return variants;
+  }, [catalog]);
+
+  const ordersByStatus = useMemo(() => {
+    const bucket = new Map<string, PurchaseRecord[]>();
+    (orders ?? []).forEach((order) => {
+      const status = order.status?.toLowerCase() ?? 'processing';
+      const collection = bucket.get(status) ?? [];
+      collection.push(order);
+      bucket.set(status, collection);
+    });
+    return bucket;
+  }, [orders]);
+
+  const currency = overview?.summary.currency ?? 'RUB';
+
+  const highlightMetrics = useMemo(() => {
+    if (!overview) {
+      return [] as { id: string; label: string; value: string; hint: string }[];
+    }
+    return [
+      {
+        id: 'pipeline',
+        label: 'Открытые сделки',
+        value: formatNumber(overview.summary.openOpportunities),
+        hint: `В работе на ${formatCurrency(overview.summary.pipelineTotal, currency)}`
+      },
+      {
+        id: 'orders',
+        label: 'Заказы в работе',
+        value: formatNumber(overview.summary.pendingOrders),
+        hint: `Воронка на ${formatCurrency(overview.summary.ordersTotal, currency)}`
+      },
+      {
+        id: 'payments',
+        label: 'Оплаты за месяц',
+        value: formatCurrency(overview.summary.paymentsMonth, currency),
+        hint: `${overview.summary.invoicesDue} счетов ждут подтверждения`
+      }
+    ];
+  }, [overview, currency]);
+
+  const sidebarStats = useMemo(() => ({
+    overdueOrders: overview?.summary.pendingOrders ?? 0,
+    invoicesDue: overview?.summary.overdueInvoices ?? 0,
+    paymentsWeek: payments?.slice(0, 5).reduce((acc, payment) => acc + (payment.amount ?? 0), 0) ?? 0
+  }), [overview, payments]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -368,55 +423,105 @@ export const DashboardPage = () => {
     if (typeof window === 'undefined') {
       return undefined;
     }
-
-    const sections = NAV_ITEMS.map((item) => document.getElementById(item.id));
     if (!('IntersectionObserver' in window)) {
       return undefined;
     }
-
+    const sections = NAV_ITEMS.map((item) => document.getElementById(item.id));
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
           .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-
-        if (visible[0]) {
-          const sectionId = visible[0].target.id as SectionKey;
-          setActiveSection(sectionId);
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) {
+          setActiveSection(visible.target.id as SectionKey);
         }
       },
-      { rootMargin: '-45% 0px -45% 0px', threshold: [0.1, 0.25, 0.6] }
+      { rootMargin: '-45% 0px -45% 0px', threshold: [0.1, 0.3, 0.6] }
     );
 
-    sections.forEach((section) => {
-      if (section) {
-        observer.observe(section);
-      }
-    });
-
+    sections.forEach((section) => section && observer.observe(section));
     return () => {
-      sections.forEach((section) => {
-        if (section) {
-          observer.unobserve(section);
-        }
-      });
+      sections.forEach((section) => section && observer.unobserve(section));
       observer.disconnect();
     };
   }, []);
 
-  const toggleTheme = () => {
-    setTheme((current) => (current === 'light' ? 'dark' : 'light'));
-  };
-
-  const handleNavigate = (sectionId: SectionKey) => {
-    setActiveSection(sectionId);
+  const navigateTo = (section: SectionKey) => {
+    setActiveSection(section);
     if (typeof window !== 'undefined') {
-      const target = document.getElementById(sectionId);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      const target = document.getElementById(section);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  const onSubmitRole = roleForm.handleSubmit(({ userId, role }) => {
+    const numericUserId = Number.parseInt(userId, 10);
+    if (!Number.isFinite(numericUserId)) {
+      notificationBus.publish({
+        type: 'warning',
+        title: 'Выберите пользователя',
+        message: 'Нужно выбрать сотрудника для назначения роли.'
+      });
+      return;
+    }
+    assignRoleMutation.mutate({ userId: numericUserId, role });
+  });
+
+  const onSubmitContact = contactForm.handleSubmit((payload) => {
+    if (!payload.firstName.trim()) {
+      notificationBus.publish({
+        type: 'warning',
+        title: 'Введите имя',
+        message: 'Имя контакта обязательно.'
+      });
+      return;
+    }
+    createContactMutation.mutate({
+      firstName: payload.firstName.trim(),
+      lastName: payload.lastName?.trim() || undefined,
+      email: payload.email?.trim() || undefined,
+      phoneNumber: payload.phoneNumber?.trim() || undefined
+    });
+  });
+
+  const onSubmitOrder = orderForm.handleSubmit((payload) => {
+    const numericContactId = payload.contactId ? Number.parseInt(payload.contactId, 10) : undefined;
+    const numericVariantId = payload.variantId ? Number.parseInt(payload.variantId, 10) : undefined;
+    if (!numericContactId && !numericVariantId) {
+      notificationBus.publish({
+        type: 'warning',
+        title: 'Заполните заказ',
+        message: 'Выберите контакт или вариант товара для заказа.'
+      });
+      return;
+    }
+    createOrderMutation.mutate({
+      contactId: numericContactId,
+      status: payload.status,
+      currency: payload.currency,
+      variantId: numericVariantId,
+      quantity: payload.quantity,
+      unitPrice: payload.unitPrice
+    });
+  });
+
+  const onSubmitPayment = paymentForm.handleSubmit((payload) => {
+    const invoiceId = Number.parseInt(payload.invoiceId, 10);
+    if (!Number.isFinite(invoiceId)) {
+      notificationBus.publish({
+        type: 'warning',
+        title: 'Выберите счёт',
+        message: 'Нужно выбрать счёт для регистрации оплаты.'
+      });
+      return;
+    }
+    createPaymentMutation.mutate({
+      invoiceId,
+      amount: payload.amount,
+      provider: payload.provider,
+      transactionReference: payload.reference?.trim() || undefined
+    });
+  });
 
   return (
     <>
@@ -427,21 +532,21 @@ export const DashboardPage = () => {
         <div className={styles.shell}>
           <aside className={styles.sidebar}>
             <div className={styles.sidebarHeader}>
-              <span className={styles.sidebarBadge}>CRM Simply</span>
+              <span className={styles.sidebarBadge}>SimplyCRM</span>
               <h1>Рабочая область</h1>
-              <p>Все ключевые процессы — от ролей и аудита до оплаты и аналитики — собраны в одном понятном интерфейсе.</p>
+              <p>Назначайте роли, создавайте заказы, отслеживайте оплату и аудит действий пользователей.</p>
             </div>
             <div className={styles.themeToggle}>
               <div>
                 <span className={styles.themeToggleLabel}>{theme === 'light' ? 'Светлая тема' : 'Тёмная тема'}</span>
                 <span className={styles.themeToggleHint}>
-                  {theme === 'light' ? 'Комфортно днём и при презентациях' : 'Экран не слепит в тёмной комнате'}
+                  {theme === 'light' ? 'Комфортно при презентациях' : 'Не слепит в тёмной комнате'}
                 </span>
               </div>
               <button
                 type="button"
-                onClick={toggleTheme}
                 className={clsx(styles.themeSwitch, theme === 'dark' && styles.themeSwitchActive)}
+                onClick={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))}
                 aria-pressed={theme === 'dark'}
               >
                 <span className={styles.themeSwitchThumb} aria-hidden="true" />
@@ -453,7 +558,7 @@ export const DashboardPage = () => {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => handleNavigate(item.id)}
+                  onClick={() => navigateTo(item.id)}
                   className={clsx(styles.navButton, activeSection === item.id && styles.navButtonActive)}
                   aria-current={activeSection === item.id ? 'true' : undefined}
                 >
@@ -464,233 +569,499 @@ export const DashboardPage = () => {
             </nav>
             <div className={styles.sidebarFooter}>
               <div className={styles.sidebarStat}>
-                <span>Заказы к вниманию</span>
-                <strong>{summary.overdueOrders}</strong>
+                <span>Заказы в работе</span>
+                <strong>{formatNumber(sidebarStats.overdueOrders)}</strong>
               </div>
               <div className={styles.sidebarStat}>
-                <span>Оплачено за неделю</span>
-                <strong>{summary.completedOrders}</strong>
+                <span>Просрочено</span>
+                <strong>{formatNumber(sidebarStats.invoicesDue)}</strong>
               </div>
               <div className={styles.sidebarStat}>
-                <span>Ожидают оплаты</span>
-                <strong>{summary.pendingPayments}</strong>
+                <span>Поступления за неделю</span>
+                <strong>{formatCurrency(sidebarStats.paymentsWeek, currency)}</strong>
               </div>
             </div>
           </aside>
 
-        <main className={styles.main}>
-          <section id="overview" className={styles.hero}>
-            <div className={styles.heroContent}>
-              <h2>
-                Ваш SimplyCRM
-                <span>Простая воронка, понятные оплаты и прозрачный аудит без лишней автоматизации.</span>
-              </h2>
-              <p>Управляйте ролями, отслеживайте шаги заказов и контролируйте онлайн-оплаты через единое окно. Всё стилизовано в духе современной SimplyCRM — ничего лишнего, только нужные блоки.</p>
-              <div className={styles.heroActions}>
-                <Button>Добавить заказ</Button>
-                <Button variant="secondary">Настроить роли</Button>
-              </div>
-            </div>
-            <div className={styles.heroHighlights}>
-              {HIGHLIGHT_METRICS.map((metric) => (
-                <div key={metric.id} className={styles.highlightCard}>
-                  <div className={styles.highlightTitle}>
-                    <span>{metric.label}</span>
-                  </div>
-                  <div className={styles.highlightValue}>{metric.value}</div>
-                  <p className={styles.highlightHint}>{metric.hint}</p>
+          <main className={styles.main}>
+            <section id="overview" className={styles.hero}>
+              <div className={styles.heroContent}>
+                <h2>
+                  SimplyCRM
+                  <span>Обновлённый интерфейс без сложной автоматики — всё под рукой в одном окне.</span>
+                </h2>
+                <p>
+                  Следите за воронкой, статусами заказов и оплатой в реальном времени. Все действия пользователей фиксируются в
+                  журнале аудита, а роли управляются в пару кликов.
+                </p>
+                <div className={styles.heroActions}>
+                  <Button onClick={() => navigateTo('orders')}>Новый заказ</Button>
+                  <Button variant="secondary" onClick={() => navigateTo('roles')}>
+                    Настроить роли
+                  </Button>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="roles" className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>
-                <h3>Роли и уровни доступа</h3>
-                <span>Расширенные права без сложных правил — всё понятно и наглядно.</span>
               </div>
-              <Button variant="secondary">Создать роль</Button>
-            </div>
-            <div className={styles.roleGrid}>
-              {ROLE_MATRIX.map((role) => (
-                <div key={role.role} className={styles.roleCard}>
-                  <div className={styles.roleHeader}>
-                    <strong>{role.role}</strong>
-                    <span className={styles.roleBadge}>{role.level}</span>
-                  </div>
-                  <p>{role.purpose}</p>
-                  <div className={styles.rolePermissions}>
-                    {role.permissions.map((permission) => (
-                      <span key={permission}>{permission}</span>
-                    ))}
-                  </div>
-                  <div className={styles.tagList}>
-                    {role.featureFlags.map((flag) => (
-                      <span key={flag} className={styles.permissionFlag}>
-                        {flag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="audit" className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>
-                <h3>Аудит действий</h3>
-                <span>Контроль изменений по заказам, оплатам и ролям в едином журнале.</span>
-              </div>
-              <Button variant="secondary">Экспорт журнала</Button>
-            </div>
-            <div className={styles.timeline}>
-              {AUDIT_LOG.map((record) => (
-                <div key={record.id} className={styles.timelineItem}>
-                  <strong>{record.event}</strong>
-                  <div className={styles.timelineMeta}>
-                    <span>{record.actor}</span>
-                    <span>{record.target}</span>
-                    <span>{record.timestamp}</span>
-                  </div>
-                  <span>{record.detail}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="orders" className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>
-                <h3>Воронка заказов</h3>
-                <span>Автоматические переходы статусов и напоминания без вебхуков.</span>
-              </div>
-              <Button variant="secondary">Шаблоны статусов</Button>
-            </div>
-            <div className={styles.ordersBoard}>
-              {ORDER_STAGES.map((stage) => (
-                <div key={stage.id} className={styles.orderColumn}>
-                  <header>
-                    <h4>{stage.title}</h4>
-                    <span className={styles.orderBadge}>{stage.badge}</span>
-                  </header>
-                  {stage.orders.map((order) => (
-                    <div key={order.id} className={styles.orderCard}>
-                      <div className={styles.orderMeta}>
-                        <strong>{order.id}</strong>
-                        <span className={`${styles.statusBadge} ${toneClass(order.tone)}`}>{order.status}</span>
+              <div className={styles.heroHighlights}>
+                {isOverviewLoading && highlightMetrics.length === 0 ? (
+                  <div className={styles.highlightPlaceholder}>Загружаем метрики…</div>
+                ) : (
+                  highlightMetrics.map((metric) => (
+                    <div key={metric.id} className={styles.highlightCard}>
+                      <div className={styles.highlightTitle}>
+                        <span>{metric.label}</span>
                       </div>
-                      <div className={styles.orderMeta}>
-                        <span>{order.company}</span>
-                        <span>{order.amount}</span>
-                      </div>
-                      <div className={styles.orderMeta}>
-                        <span>{order.manager}</span>
-                        <span>{order.due}</span>
-                      </div>
+                      <div className={styles.highlightValue}>{metric.value}</div>
+                      <p className={styles.highlightHint}>{metric.hint}</p>
                     </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="payments" className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>
-                <h3>Онлайн-оплаты</h3>
-                <span>Безопасный приём платежей и понятные статусы по каждому счёту.</span>
+                  ))
+                )}
               </div>
-              <Button variant="secondary">Добавить провайдера</Button>
-            </div>
-            <div className={styles.paymentsList}>
-              {PAYMENTS.map((payment) => (
-                <div key={payment.id} className={styles.paymentRow}>
-                  <div className={styles.paymentMeta}>
-                    <strong>{payment.id}</strong>
-                    <span>{payment.customer}</span>
-                  </div>
-                  <div className={styles.paymentMeta}>
-                    <strong>{payment.amount}</strong>
-                    <span>{payment.method}</span>
-                  </div>
-                  <div className={styles.paymentMeta}>
-                    <span className={`${styles.statusBadge} ${toneClass(payment.tone)}`}>{payment.status}</span>
-                    <span>{payment.hint}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+            </section>
 
-          <section id="analytics" className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionTitle}>
-                <h3>Статистика и аналитика</h3>
-                <span>Простые показатели для ежедневной оценки.</span>
+            <section id="roles" className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  <h3>Роли и уровни доступа</h3>
+                  <span>Назначайте готовые роли и следите за тем, кто что может делать в CRM.</span>
+                </div>
               </div>
-              <Button variant="secondary">Экспортировать отчёт</Button>
-            </div>
-            <div className={styles.analyticsGrid}>
-              {ANALYTICS.map((insight) => (
-                <div key={insight.id} className={styles.analyticsCard}>
-                  <span>{insight.title}</span>
-                  <strong>{insight.value}</strong>
-                  <span>{insight.trend}</span>
-                  <span>{insight.detail}</span>
+              <div className={styles.roleGrid}>
+                {ROLE_DEFINITIONS.map((definition) => {
+                  const assignedUsers = roleAssignments.get(definition.code) ?? [];
+                  return (
+                    <article key={definition.code} className={styles.roleCard}>
+                      <header className={styles.roleHeader}>
+                        <strong>{definition.title}</strong>
+                        <span className={styles.roleBadge}>{definition.level}</span>
+                      </header>
+                      <p className={styles.roleDescription}>{definition.description}</p>
+                      <ul className={styles.roleHighlights}>
+                        {definition.highlights.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                      <div className={styles.roleAssignments}>
+                        <span>Назначено: {assignedUsers.length}</span>
+                        {assignedUsers.length > 0 && (
+                          <ul>
+                            {assignedUsers.map((user) => (
+                              <li key={user.id}>{resolveUserName(user)}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className={styles.roleForm}>
+                <h4>Назначить роль</h4>
+                <form onSubmit={onSubmitRole} className={styles.formGrid}>
+                  <label className={styles.formField}>
+                    <span>Сотрудник</span>
+                    <select {...roleForm.register('userId')} required>
+                      <option value="">Выберите пользователя…</option>
+                      {(users ?? []).map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {resolveUserName(user)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.formField}>
+                    <span>Роль</span>
+                    <select {...roleForm.register('role')} required>
+                      {ROLE_DEFINITIONS.map((definition) => (
+                        <option key={definition.code} value={definition.code}>
+                          {definition.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className={styles.formActions}>
+                    <Button type="submit" disabled={assignRoleMutation.isPending}>
+                      Назначить
+                    </Button>
+                  </div>
+                </form>
+                {roles && roles.length > 0 && (
+                  <div className={styles.roleTable}>
+                    <div className={styles.roleTableHeader}>
+                      <span>Пользователь</span>
+                      <span>Роль</span>
+                      <span>Назначена</span>
+                      <span className={styles.visuallyHidden}>Действия</span>
+                    </div>
+                    <ul>
+                      {roles.map((role) => (
+                        <li key={role.id} className={styles.roleTableRow}>
+                          <span>{resolveUserName(userById.get(role.userId))}</span>
+                          <span>{ROLE_DEFINITIONS.find((item) => item.code === role.role)?.title ?? role.role}</span>
+                          <span>{new Date(role.assignedAt).toLocaleDateString('ru-RU')}</span>
+                          <button
+                            type="button"
+                            className={styles.roleRemove}
+                            onClick={() => removeRoleMutation.mutate(role.id)}
+                            disabled={removeRoleMutation.isPending}
+                            aria-label="Удалить роль"
+                          >
+                            Удалить
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section id="audit" className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  <h3>Журнал аудита</h3>
+                  <span>Каждое изменение фиксируется и доступно для проверки.</span>
                 </div>
-              ))}
-            </div>
-          </section>
-        </main>
-
-        <aside className={styles.secondary}>
-          <div id="support" className={styles.secondaryCard}>
-            <header>
-              <h4>Чек-лист дня</h4>
-              <span>Сосредоточьтесь на понятных шагах</span>
-            </header>
-            <div className={styles.checklist}>
-              {CHECKLIST_STEPS.map((step) => (
-                <label key={step} className={styles.checklistItem}>
-                  <input type="checkbox" />
-                  <span>{step}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.secondaryCard}>
-            <header>
-              <h4>Помощь и внедрение</h4>
-              <span>Поддержка без сложных интеграций</span>
-            </header>
-            <div className={styles.supportBlock}>
-              <strong>Готовые материалы</strong>
-              <div className={styles.tagList}>
-                {SUPPORT_TAGS.map((tag) => (
-                  <span key={tag} className={styles.tag}>
-                    {tag}
-                  </span>
+              </div>
+              <div className={styles.auditTimeline}>
+                {(auditLogs ?? []).map((log) => (
+                  <article key={log.id} className={styles.auditItem}>
+                    <header>
+                      <strong>{log.action}</strong>
+                      <time dateTime={log.createdAt}>
+                        {new Date(log.createdAt).toLocaleString('ru-RU', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </time>
+                    </header>
+                    <p>{log.entity}</p>
+                    <footer>
+                      <span>{resolveUserName(userById.get(log.userId ?? undefined))}</span>
+                    </footer>
+                  </article>
                 ))}
+                {(auditLogs ?? []).length === 0 && <p className={styles.emptyState}>Пока нет записей аудита.</p>}
               </div>
-            </div>
-            <div className={styles.secondaryActions}>
-              <Button>Написать в поддержку</Button>
-              <Button variant="secondary">Запланировать звонок</Button>
-            </div>
-            <div className={styles.timeline}>
-              {SUPPORT_CONTACTS.map((contact) => (
-                <div key={contact.label} className={styles.timelineItem}>
-                  <strong>{contact.label}</strong>
-                  <span>{contact.description}</span>
+            </section>
+
+            <section id="orders" className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  <h3>Заказы и статусы</h3>
+                  <span>Контролируйте воронку и наполняйте её новыми заказами.</span>
                 </div>
-              ))}
+              </div>
+              <div className={styles.orderBoard}>
+                {ORDER_STATUSES.map((statusKey) => {
+                  const statusConfig = ORDER_STATUS_LABELS[statusKey];
+                  const columnOrders = ordersByStatus.get(statusKey) ?? [];
+                  return (
+                    <div key={statusKey} className={styles.orderColumn}>
+                      <header>
+                        <div>
+                          <strong>{statusConfig.title}</strong>
+                          <span>{statusConfig.subtitle}</span>
+                        </div>
+                        <span className={clsx(styles.orderBadge, styles[`status${statusConfig.tone.charAt(0).toUpperCase()}${statusConfig.tone.slice(1)}`])}>
+                          {columnOrders.length}
+                        </span>
+                      </header>
+                      <ul>
+                        {columnOrders.map((order) => (
+                          <li key={order.id}>
+                            <span>{order.contactName ?? 'Без контакта'}</span>
+                            <strong>{formatCurrency(order.totalAmount, order.currency)}</strong>
+                            <time dateTime={order.orderedAt ?? undefined}>
+                              {order.orderedAt ? new Date(order.orderedAt).toLocaleDateString('ru-RU') : '—'}
+                            </time>
+                          </li>
+                        ))}
+                        {columnOrders.length === 0 && <li className={styles.emptyState}>Пока нет заказов</li>}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className={styles.panelGrid}>
+                <article className={styles.panel}>
+                  <h4>Новый контакт</h4>
+                  <form onSubmit={onSubmitContact} className={styles.formGrid}>
+                    <label className={styles.formField}>
+                      <span>Имя *</span>
+                      <input type="text" {...contactForm.register('firstName')} required />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Фамилия</span>
+                      <input type="text" {...contactForm.register('lastName')} />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Email</span>
+                      <input type="email" {...contactForm.register('email')} />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Телефон</span>
+                      <input type="tel" {...contactForm.register('phoneNumber')} />
+                    </label>
+                    <div className={styles.formActions}>
+                      <Button type="submit" disabled={createContactMutation.isPending}>
+                        Сохранить контакт
+                      </Button>
+                    </div>
+                  </form>
+                </article>
+
+                <article className={styles.panel}>
+                  <h4>Создать заказ</h4>
+                  <form onSubmit={onSubmitOrder} className={styles.formGrid}>
+                    <label className={styles.formField}>
+                      <span>Контакт</span>
+                      <select {...orderForm.register('contactId')}>
+                        <option value="">Без контакта</option>
+                        {(contacts ?? []).map((contact) => (
+                          <option key={contact.id} value={contact.id}>
+                            {resolveContactName(contact)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Статус</span>
+                      <select {...orderForm.register('status')} required>
+                        {ORDER_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {ORDER_STATUS_LABELS[status]?.title ?? status}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Валюта</span>
+                      <select {...orderForm.register('currency')} required>
+                        {CURRENCIES.map((code) => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Вариант товара</span>
+                      <select {...orderForm.register('variantId')}>
+                        <option value="">Без позиции</option>
+                        {productVariants.map((variant) => (
+                          <option key={variant.id} value={variant.id}>
+                            {variant.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Количество</span>
+                      <input type="number" min={1} {...orderForm.register('quantity', { valueAsNumber: true })} />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Цена за единицу</span>
+                      <input type="number" min={0} step={0.01} {...orderForm.register('unitPrice', { valueAsNumber: true })} />
+                    </label>
+                    <div className={styles.formActions}>
+                      <Button type="submit" disabled={createOrderMutation.isPending}>
+                        Создать заказ
+                      </Button>
+                    </div>
+                  </form>
+                </article>
+              </div>
+            </section>
+
+            <section id="payments" className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  <h3>Онлайн-оплаты</h3>
+                  <span>Контролируйте поступления и фиксируйте платежи.</span>
+                </div>
+              </div>
+              <div className={styles.paymentsPanel}>
+                <div className={styles.paymentList}>
+                  <h4>Последние платежи</h4>
+                  <ul>
+                    {(payments ?? []).slice(0, 8).map((payment) => (
+                      <li key={payment.id}>
+                        <div>
+                          <strong>{formatCurrency(payment.amount, currency)}</strong>
+                          <span>{payment.provider}</span>
+                        </div>
+                        <time dateTime={payment.processedAt ?? undefined}>
+                          {payment.processedAt ? new Date(payment.processedAt).toLocaleString('ru-RU') : '—'}
+                        </time>
+                      </li>
+                    ))}
+                    {(payments ?? []).length === 0 && <li className={styles.emptyState}>Платежей пока нет.</li>}
+                  </ul>
+                </div>
+                <div className={styles.paymentForm}>
+                  <h4>Зарегистрировать оплату</h4>
+                  <form onSubmit={onSubmitPayment} className={styles.formGrid}>
+                    <label className={styles.formField}>
+                      <span>Счёт</span>
+                      <select {...paymentForm.register('invoiceId')} required>
+                        <option value="">Выберите счёт…</option>
+                        {(invoices ?? []).map((invoice) => (
+                          <option key={invoice.id} value={invoice.id}>
+                            #{invoice.id} — {formatCurrency(invoice.totalAmount, currency)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Сумма</span>
+                      <input type="number" min={0} step={0.01} {...paymentForm.register('amount', { valueAsNumber: true })} required />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Провайдер</span>
+                      <select {...paymentForm.register('provider')} required>
+                        {PAYMENT_PROVIDERS.map((provider) => (
+                          <option key={provider} value={provider}>
+                            {provider}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Ссылка / номер</span>
+                      <input type="text" {...paymentForm.register('reference')} />
+                    </label>
+                    <div className={styles.formActions}>
+                      <Button type="submit" disabled={createPaymentMutation.isPending}>
+                        Сохранить платёж
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            <section id="analytics" className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  <h3>Статистика и аналитика</h3>
+                  <span>Минимум цифр — только то, что нужно пользователю.</span>
+                </div>
+              </div>
+              <div className={styles.analyticsGrid}>
+                <article className={styles.analyticsCard}>
+                  <h4>Воронка сделок</h4>
+                  <ul>
+                    {(overview?.pipeline ?? []).map((row) => (
+                      <li key={`${row.pipeline}-${row.stage}`}>
+                        <span>
+                          {row.pipeline} → {row.stage}
+                        </span>
+                        <strong>
+                          {formatNumber(row.count)} / {formatCurrency(row.value, currency)}
+                        </strong>
+                      </li>
+                    ))}
+                    {(overview?.pipeline ?? []).length === 0 && <li className={styles.emptyState}>Нет активных сделок.</li>}
+                  </ul>
+                </article>
+                <article className={styles.analyticsCard}>
+                  <h4>Поставщики и склад</h4>
+                  <ul>
+                    <li>
+                      <span>Активных товаров</span>
+                      <strong>{formatNumber(overview?.summary.productsActive)}</strong>
+                    </li>
+                    <li>
+                      <span>Вариантов в каталоге</span>
+                      <strong>{formatNumber(overview?.summary.productVariants)}</strong>
+                    </li>
+                    <li>
+                      <span>Поставщиков</span>
+                      <strong>{formatNumber(overview?.summary.suppliers)}</strong>
+                    </li>
+                    <li>
+                      <span>Запасов на складе</span>
+                      <strong>{formatNumber(overview?.summary.inventoryOnHand)}</strong>
+                    </li>
+                  </ul>
+                </article>
+                <article className={styles.analyticsCard}>
+                  <h4>Активности</h4>
+                  <ul>
+                    {(overview?.upcomingActivities ?? []).map((activity) => (
+                      <li key={activity.id}>
+                        <div>
+                          <span>{activity.subject || activity.type}</span>
+                          <strong>{activity.owner ?? 'Не назначено'}</strong>
+                        </div>
+                        <time dateTime={activity.dueAt ?? undefined}>
+                          {activity.dueAt ? new Date(activity.dueAt).toLocaleString('ru-RU') : '—'}
+                        </time>
+                      </li>
+                    ))}
+                    {(overview?.upcomingActivities ?? []).length === 0 && <li className={styles.emptyState}>Нет запланированных задач.</li>}
+                  </ul>
+                </article>
+              </div>
+            </section>
+
+            <section id="support" className={styles.section}>
+              <div className={styles.supportCard}>
+                <div>
+                  <h3>Поддержка команды SimplyCRM</h3>
+                  <p>Чат, обучение и готовые шаблоны помогут внедрить CRM без сложных автоматизаций и вебхуков.</p>
+                  <ul>
+                    <li>Живой чат отвечает в течение 10 минут</li>
+                    <li>Видеосессия по запуску и обучению команды</li>
+                    <li>Шаблоны отчётов и чек-листы по оплатам</li>
+                  </ul>
+                </div>
+                <Button variant="secondary">Открыть центр помощи</Button>
+              </div>
+            </section>
+          </main>
+
+          <aside className={styles.secondary}>
+            <div className={styles.secondaryPanel}>
+              <h4>Последние заметки</h4>
+              <ul>
+                {(overview?.recentNotes ?? []).map((note) => (
+                  <li key={note.id}>
+                    <p>{note.content}</p>
+                    <footer>
+                      <span>{note.author ?? 'Без автора'}</span>
+                      <time dateTime={note.createdAt}>
+                        {new Date(note.createdAt).toLocaleString('ru-RU')}
+                      </time>
+                    </footer>
+                  </li>
+                ))}
+                {(overview?.recentNotes ?? []).length === 0 && <li className={styles.emptyState}>Заметок пока нет.</li>}
+              </ul>
             </div>
-          </div>
-        </aside>
-      </div>
+            <div className={styles.secondaryPanel}>
+              <h4>Отгрузки</h4>
+              <ul>
+                {(overview?.recentShipments ?? []).map((shipment) => (
+                  <li key={shipment.id}>
+                    <div>
+                      <strong>{shipment.carrier}</strong>
+                      <span>{shipment.status}</span>
+                    </div>
+                    <time dateTime={shipment.shippedAt ?? undefined}>
+                      {shipment.shippedAt ? new Date(shipment.shippedAt).toLocaleDateString('ru-RU') : '—'}
+                    </time>
+                  </li>
+                ))}
+                {(overview?.recentShipments ?? []).length === 0 && <li className={styles.emptyState}>Отгрузок нет.</li>}
+              </ul>
+            </div>
+          </aside>
+        </div>
       </div>
     </>
   );

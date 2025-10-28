@@ -1,12 +1,10 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
 
 import styles from './ProductsPage.module.css';
-import { DataTable } from '../components/ui/DataTable';
 import { catalogApi } from '../api/catalog';
-import { Product, ProductFilters, ProductListResponse } from '../types/catalog';
+import { ProductFilters, ProductListResponse } from '../types/catalog';
 import { Button } from '../components/ui/Button';
 import { notificationBus } from '../components/notifications/notificationBus';
 
@@ -14,6 +12,13 @@ const DEFAULT_FILTERS: ProductFilters = {
   page: 1,
   pageSize: 25
 };
+
+const formatCurrency = (value: number | undefined) =>
+  new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'RUB',
+    maximumFractionDigits: 0
+  }).format(value ?? 0);
 
 export const ProductsPage = () => {
   const [search, setSearch] = useState('');
@@ -58,38 +63,6 @@ export const ProductsPage = () => {
       });
     }
   });
-
-  const columns = useMemo(
-    () => [
-      {
-        key: 'name',
-        header: 'Товар',
-        render: (product: Product) => (
-          <Link to={`/products/${product.id}`}>{product.name}</Link>
-        )
-      },
-      { key: 'sku', header: 'SKU' },
-      {
-        key: 'category',
-        header: 'Категория',
-        render: (product: Product) => product.categoryName ?? '—'
-      },
-      {
-        key: 'variants',
-        header: 'Варианты',
-        render: (product: Product) =>
-          product.variants.length > 0
-            ? `${product.variants.length} шт. / от ${product.variants[0].price.toLocaleString('ru-RU')} ₽`
-            : '—'
-      },
-      {
-        key: 'isActive',
-        header: 'Статус',
-        render: (product: Product) => (product.isActive ? 'Активен' : 'Отключён')
-      }
-    ],
-    []
-  );
 
   const applyFilters = (event: FormEvent) => {
     event.preventDefault();
@@ -187,88 +160,181 @@ export const ProductsPage = () => {
     });
   };
 
+  const inventoryStats = useMemo(() => {
+    const totalVariants = products.reduce((acc, product) => acc + product.variants.length, 0);
+    const activeProducts = products.filter((product) => product.isActive).length;
+    const inactiveProducts = products.length - activeProducts;
+    return { totalVariants, activeProducts, inactiveProducts };
+  }, [products]);
+
+  const paginatedInfo = useMemo(() => {
+    if (!data) {
+      return '';
+    }
+    const start = ((filters.page ?? 1) - 1) * (filters.pageSize ?? 25) + 1;
+    const end = Math.min(start + (filters.pageSize ?? 25) - 1, data.count);
+    return `${start}–${end} из ${data.count}`;
+  }, [data, filters.page, filters.pageSize]);
+
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.page}>
       <Helmet>
         <title>Каталог продуктов — SimplyCRM</title>
       </Helmet>
-      <header className={styles.header}>
-        <div>
-          <h1>Каталог продуктов</h1>
-          <p>Просматривайте и фильтруйте товары, управляйте остатками и поставщиками.</p>
-        </div>
-        <form className={styles.filters} onSubmit={applyFilters}>
-          <label>
-            Поиск
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Название или SKU"
-            />
-          </label>
-          <button type="submit">Применить</button>
-          <button type="button" onClick={resetFilters} style={{ background: 'rgba(17, 24, 39, 0.08)', color: 'var(--color-primary-dark)' }}>
-            Сбросить
-          </button>
-        </form>
-        <div className={styles.summary}>
-          <span>Всего товаров: {data?.count ?? '—'}</span>
-          {isFetching ? <span>Обновление данных…</span> : null}
-        </div>
-      </header>
-      <DataTable<Product>
-        columns={columns}
-        data={products}
-        emptyMessage="Каталог пока пуст. Добавьте товары через CRM."
-      />
-
-      <section className={styles.createCard}>
-        <h2>Добавить товар</h2>
-        <form className={styles.createForm} onSubmit={handleCreateProduct}>
-          <label>
-            Название
-            <input
-              name="name"
-              value={newProduct.name}
-              onChange={handleNewProductChange}
-              required
-            />
-          </label>
-          <label>
-            SKU (необязательно)
-            <input
-              name="sku"
-              value={newProduct.sku}
-              onChange={handleNewProductChange}
-              placeholder="Если не заполнить, сгенерируем автоматически"
-            />
-          </label>
-          <label className={styles.fullWidth}>
-            Описание
-            <textarea
-              name="description"
-              value={newProduct.description}
-              onChange={handleNewProductChange}
-              rows={3}
-            />
-          </label>
-          <label className={styles.fullWidth}>
-            Главное изображение
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
-            <span className={styles.helpText}>До 500×500 пикселей, форматы: JPG, PNG или WebP.</span>
-          </label>
-          {imagePreview ? (
-            <div className={styles.previewWrapper}>
-              <img src={imagePreview} alt="Предпросмотр товара" className={styles.previewImage} />
-            </div>
-          ) : null}
-          <div className={styles.formActions}>
-            <Button type="submit" disabled={createProductMutation.isPending}>
-              Добавить товар
-            </Button>
+      <div className={styles.shell}>
+        <aside className={styles.sidebar}>
+          <div className={styles.sidebarHeader}>
+            <span className={styles.sidebarBadge}>Каталог</span>
+            <h1>Товары и варианты</h1>
+            <p>Ищите товары, контролируйте остатки и обновляйте карточки в едином интерфейсе.</p>
           </div>
-        </form>
-      </section>
+          <form className={styles.filterForm} onSubmit={applyFilters}>
+            <label className={styles.formField}>
+              <span>Поиск по названию или SKU</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Введите запрос"
+              />
+            </label>
+            <div className={styles.filterActions}>
+              <Button type="submit" disabled={isFetching}>
+                Применить
+              </Button>
+              <Button type="button" variant="secondary" onClick={resetFilters}>
+                Сбросить
+              </Button>
+            </div>
+          </form>
+          <div className={styles.sidebarStats}>
+            <div>
+              <span>Активных товаров</span>
+              <strong>{inventoryStats.activeProducts}</strong>
+            </div>
+            <div>
+              <span>Неактивных</span>
+              <strong>{inventoryStats.inactiveProducts}</strong>
+            </div>
+            <div>
+              <span>Всего вариантов</span>
+              <strong>{inventoryStats.totalVariants}</strong>
+            </div>
+          </div>
+        </aside>
+
+        <main className={styles.main}>
+          <section className={styles.hero}>
+            <div>
+              <h2>Каталог SimplyCRM</h2>
+              <p>Современная витрина с фильтрами и быстрым доступом к товарам и их вариантам.</p>
+            </div>
+            <div className={styles.heroStats}>
+              <div>
+                <span>Записей на странице</span>
+                <strong>{filters.pageSize}</strong>
+              </div>
+              <div>
+                <span>Выбрано</span>
+                <strong>{paginatedInfo || '—'}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.listSection}>
+            <header className={styles.sectionHeader}>
+              <div>
+                <h3>Список товаров</h3>
+                <span>Проверьте описание, варианты и статус активности.</span>
+              </div>
+            </header>
+            <div className={styles.tableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Товар</th>
+                    <th>SKU</th>
+                    <th>Категория</th>
+                    <th>Варианты</th>
+                    <th>Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product) => {
+                    const firstVariant = product.variants[0];
+                    return (
+                      <tr key={product.id}>
+                        <td>
+                          <span className={styles.productName}>{product.name}</span>
+                          {product.description && <p>{product.description}</p>}
+                        </td>
+                        <td>{product.sku || '—'}</td>
+                        <td>{product.categoryName ?? '—'}</td>
+                        <td>
+                          {product.variants.length > 0
+                            ? `${product.variants.length} / ${formatCurrency(firstVariant.price)}`
+                            : '—'}
+                        </td>
+                        <td>
+                          <span className={product.isActive ? styles.statusActive : styles.statusInactive}>
+                            {product.isActive ? 'Активен' : 'Отключён'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {products.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className={styles.emptyState}>
+                        Товары не найдены. Измените фильтр или добавьте новый товар.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+
+        <aside className={styles.secondary}>
+          <div className={styles.createPanel}>
+            <h3>Добавить товар</h3>
+            <p>Создайте новую карточку, чтобы затем добавить варианты и стоимость.</p>
+            <form className={styles.formGrid} onSubmit={handleCreateProduct}>
+              <label className={styles.formField}>
+                <span>Название *</span>
+                <input name="name" value={newProduct.name} onChange={handleNewProductChange} required />
+              </label>
+              <label className={styles.formField}>
+                <span>SKU</span>
+                <input name="sku" value={newProduct.sku} onChange={handleNewProductChange} />
+              </label>
+              <label className={styles.formField}>
+                <span>Описание</span>
+                <textarea name="description" value={newProduct.description} onChange={handleNewProductChange} rows={3} />
+              </label>
+              <label className={styles.formField}>
+                <span>Изображение</span>
+                <input type="file" accept={allowedImageTypes.join(',')} onChange={handleImageChange} />
+                {imagePreview && <img src={imagePreview} alt="Предпросмотр" className={styles.previewImage} />}
+              </label>
+              <div className={styles.formActions}>
+                <Button type="submit" disabled={createProductMutation.isPending}>
+                  Создать товар
+                </Button>
+              </div>
+            </form>
+          </div>
+          <div className={styles.secondaryPanel}>
+            <h3>Советы по каталогу</h3>
+            <ul>
+              <li>Используйте говорящие названия и уникальные SKU.</li>
+              <li>Добавьте описание, чтобы менеджеры быстрее ориентировались.</li>
+              <li>Следите за активностью товаров и архивируйте устаревшие позиции.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 };
