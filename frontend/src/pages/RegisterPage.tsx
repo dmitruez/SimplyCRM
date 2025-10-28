@@ -82,11 +82,14 @@ export const RegisterPage = () => {
             firstName: '',
             lastName: '',
             organizationName: '',
+            registerWithoutCompany: false,
+            inviteToken: '',
             planKey: 'free'
         }
     });
     const {register: registerAccount, loginWithGoogle} = useAuthContext();
     const organizationName = watch('organizationName');
+    const registerWithoutCompany = watch('registerWithoutCompany');
     const planKey = watch('planKey');
 
     const {data: plansData, isLoading: plansLoading} = useQuery({
@@ -102,10 +105,16 @@ export const RegisterPage = () => {
             setError('confirmPassword', {type: 'validate', message: 'Пароли должны совпадать'});
             return;
         }
+        if (!values.registerWithoutCompany && !values.organizationName?.trim()) {
+            setError('organizationName', {type: 'validate', message: 'Укажите название компании'});
+            return;
+        }
 
         try {
             await registerAccount({
                 ...values,
+                organizationName: values.registerWithoutCompany ? undefined : values.organizationName?.trim(),
+                inviteToken: values.inviteToken?.trim() || undefined,
                 planKey: values.planKey ?? undefined
             });
             notificationBus.publish({
@@ -210,13 +219,37 @@ export const RegisterPage = () => {
                             ) : null}
                         </div>
                     </div>
+                    <div className={styles.checkboxGroup}>
+                        <label className={styles.checkboxLabel} htmlFor="registerWithoutCompany">
+                            <input
+                                id="registerWithoutCompany"
+                                type="checkbox"
+                                {...registerField('registerWithoutCompany')}
+                            />
+                            <span>Зарегистрироваться без компании</span>
+                        </label>
+                        <span className={styles.helpText}>
+              Можно получить приглашение от администратора и присоединиться позже.
+            </span>
+                    </div>
                     <div className={styles.inputGroup}>
                         <label htmlFor="organizationName">Компания / рабочее пространство</label>
                         <input
                             id="organizationName"
                             type="text"
                             className={styles.input}
-                            {...registerField('organizationName', {required: 'Укажите название компании'})}
+                            disabled={registerWithoutCompany}
+                            {...registerField('organizationName', {
+                                validate: (value) => {
+                                    if (registerWithoutCompany) {
+                                        return true;
+                                    }
+                                    if (value?.trim()) {
+                                        return true;
+                                    }
+                                    return 'Укажите название компании';
+                                }
+                            })}
                         />
                         <span className={styles.helpText}>
               На основе этого названия создадим отдельный тенант и подключим выбранный тариф.
@@ -225,6 +258,21 @@ export const RegisterPage = () => {
                             <span className={styles.helpText}>{errors.organizationName.message}</span>
                         ) : null}
                     </div>
+                    {registerWithoutCompany ? (
+                        <div className={styles.inputGroup}>
+                            <label htmlFor="inviteToken">Код приглашения (необязательно)</label>
+                            <input
+                                id="inviteToken"
+                                type="text"
+                                className={styles.input}
+                                placeholder="Вставьте код, если уже получили ссылку"
+                                {...registerField('inviteToken')}
+                            />
+                            <span className={styles.helpText}>
+                Если коллега отправил приглашение, вставьте код из ссылки, чтобы сразу подключиться.
+              </span>
+                        </div>
+                    ) : null}
                     <div className={styles.inputGroup}>
                         <label htmlFor="planKey">Тарифный план</label>
                         <select
@@ -253,7 +301,15 @@ export const RegisterPage = () => {
                 <GoogleLoginButton
                     mode="signup"
                     onCredential={async (credential) => {
-                        if (!organizationName) {
+                        if (registerWithoutCompany) {
+                            notificationBus.publish({
+                                type: 'warning',
+                                title: 'Google-регистрация с приглашением',
+                                message: 'Укажите компанию или используйте форму выше, чтобы зарегистрироваться без компании.'
+                            });
+                            return;
+                        }
+                        if (!organizationName?.trim()) {
                             notificationBus.publish({
                                 type: 'warning',
                                 title: 'Укажите компанию',
@@ -261,7 +317,7 @@ export const RegisterPage = () => {
                             });
                             return;
                         }
-                        await loginWithGoogle({credential, organizationName, planKey: planKey || undefined});
+                        await loginWithGoogle({credential, organizationName: organizationName.trim(), planKey: planKey || undefined});
                         notificationBus.publish({
                             type: 'success',
                             title: 'Google аккаунт подключен',

@@ -23,7 +23,7 @@ class Contact(models.Model):
 	organization = models.ForeignKey("core.Organization", on_delete=models.CASCADE, related_name="contacts")
 	company = models.ForeignKey(Company, null=True, blank=True, on_delete=models.SET_NULL, related_name="contacts")
 	first_name = models.CharField(max_length=128)
-	last_name = models.CharField(max_length=128)
+	last_name = models.CharField(max_length=128, blank=True)
 	email = models.EmailField(blank=True)
 	phone_number = models.CharField(max_length=32, blank=True)
 	tags = models.JSONField(default=list, blank=True)

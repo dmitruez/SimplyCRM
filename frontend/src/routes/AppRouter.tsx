@@ -12,6 +12,7 @@ import { AccountPage } from '../pages/AccountPage';
 import { ApiAccessPage } from '../pages/ApiAccessPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
 import { AdminPage } from '../pages/AdminPage';
+import { InviteAcceptPage } from '../pages/InviteAcceptPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 const NotFoundPage = () => <div>Страница не найдена</div>;
@@ -24,6 +25,7 @@ const AppRouter = () => (
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/invite/:token" element={<InviteAcceptPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />

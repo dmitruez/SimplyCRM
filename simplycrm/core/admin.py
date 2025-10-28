@@ -47,3 +47,10 @@ class AuditLogAdmin(admin.ModelAdmin):
 	list_display = ("action", "entity", "user", "created_at")
 	search_fields = ("action", "entity")
 	list_filter = ("organization",)
+
+
+@admin.register(models.OrganizationInvite)
+class OrganizationInviteAdmin(admin.ModelAdmin):
+	list_display = ("organization", "email", "token", "role", "created_at", "expires_at", "accepted_at")
+	list_filter = ("organization", "role", "created_at", "expires_at", "accepted_at")
+	search_fields = ("email", "token", "organization__name")

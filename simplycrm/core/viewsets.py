@@ -109,7 +109,7 @@ class AuditLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     serializer_class = serializers.AuditLogSerializer
     permission_classes = [permissions.IsAuthenticated, HasFeaturePermission]
     feature_code = "compliance.audit_logs"
-    
+
     def get_queryset(self):  # type: ignore[override]
         qs = super().get_queryset()
         user = self.request.user
@@ -120,3 +120,23 @@ class AuditLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         if organization:
             return qs.filter(organization=organization)
         return qs.none()
+
+
+class OrganizationInviteViewSet(viewsets.ModelViewSet):
+    serializer_class = serializers.OrganizationInviteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):  # type: ignore[override]
+        organization = tenant.get_request_organization(self.request)
+        if not organization:
+            return models.OrganizationInvite.objects.none()
+        return (
+            models.OrganizationInvite.objects.select_related("organization", "created_by", "accepted_by")
+            .filter(organization=organization)
+        )
+
+    def perform_create(self, serializer):  # type: ignore[override]
+        organization = tenant.get_request_organization(self.request)
+        if organization is None:
+            raise ValidationError("Активная организация не выбрана.")
+        serializer.save(organization=organization, created_by=self.request.user)

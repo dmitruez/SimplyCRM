@@ -34,8 +34,10 @@ from simplycrm.core.serializers import (
     UserProfileSerializer,
     UserProfileUpdateSerializer,
     EmptySerializer,
+    OrganizationInviteSerializer,
+    InviteAcceptSerializer,
 )
-from simplycrm.core.services import provision_google_account
+from simplycrm.core.services import finalize_invite_acceptance, provision_google_account
 from simplycrm.core.throttling import LoginRateThrottle, RegistrationRateThrottle
 from simplycrm.sales import models as sales_models
 
@@ -134,17 +136,6 @@ class ProfileView(APIView):
         serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
     
-    def patch(self, request, *args, **kwargs):  # type: ignore[override]
-        serializer = UserProfileUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=True,
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        profile = UserProfileSerializer(request.user)
-        return Response(profile.data)
-
     def patch(self, request, *args, **kwargs):  # type: ignore[override]
         serializer = UserProfileUpdateSerializer(
             request.user,
@@ -665,16 +656,42 @@ class DashboardOverviewView(APIView):
 
 class RegisterView(APIView):
     """Self-service registration endpoint with throttling."""
-    
+
     permission_classes = [permissions.AllowAny]
     throttle_classes = [RegistrationRateThrottle]
-    
+
     def post(self, request, *args, **kwargs):  # type: ignore[override]
         serializer = RegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         payload = ObtainAuthTokenView._build_auth_payload(user)
         return Response(payload, status=status.HTTP_201_CREATED)
+
+
+class InviteAcceptView(APIView):
+    """Allow authenticated users to join an organization via invite token."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):  # type: ignore[override]
+        serializer = InviteAcceptSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        invite = serializer.validated_data["invite"]
+        user = request.user
+
+        if invite.email and user.email and invite.email.lower() != user.email.lower():
+            raise ValidationError({"detail": "Это приглашение предназначено для другого email."})
+
+        if user.organization_id and user.organization_id != invite.organization_id:
+            raise ValidationError({"detail": "Вы уже состоите в другой организации."})
+
+        finalize_invite_acceptance(invite=invite, user=user)
+
+        refreshed_invite = core_models.OrganizationInvite.objects.select_related(
+            "organization", "created_by", "accepted_by"
+        ).get(pk=invite.pk)
+        payload = OrganizationInviteSerializer(refreshed_invite).data
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class GoogleAuthView(APIView):

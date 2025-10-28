@@ -488,6 +488,11 @@
   box-shadow: 0 0 0 3px rgba(14, 95, 216, 0.15);
 }
 
+.formFieldHint {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
 .formActions {
   display: flex;
   justify-content: flex-end;
@@ -528,6 +533,149 @@
   color: var(--color-primary);
   font-weight: 600;
   cursor: pointer;
+}
+
+.employeesGrid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.employeeCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1.4rem;
+  border-radius: 24px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+}
+
+.employeeList {
+  display: grid;
+  gap: 0.9rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.employeeListItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.employeeMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.employeeMeta span {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.employeeRole {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.inviteList {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.inviteListHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.inviteHint {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.inviteCard {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.2rem 1.4rem;
+  border-radius: 20px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+}
+
+.inviteCard header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.inviteActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.inviteStatus {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.inviteLink {
+  font-family: 'Fira Mono', monospace;
+  font-size: 0.85rem;
+  background: rgba(148, 163, 184, 0.16);
+  padding: 0.45rem 0.6rem;
+  border-radius: 12px;
+  word-break: break-all;
+}
+
+.inviteMeta {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.inviteHistory {
+  border-top: 1px dashed var(--divider);
+  padding-top: 1rem;
+}
+
+.inviteHistory ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.inviteHistory li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.inviteHistory span {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.emptyInvites {
+  border: 1px dashed var(--divider);
+  border-radius: 16px;
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
 }
 
 .auditTimeline {
