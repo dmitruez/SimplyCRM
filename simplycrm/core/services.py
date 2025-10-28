@@ -113,23 +113,45 @@ def provision_local_account(
 
 
 def provision_google_account(
-		*,
-		email: str,
-		organization_name: str,
-		first_name: str = "",
-		last_name: str = "",
-		plan_key: str | None = None,
-		start_date: date | None = None,
+                *,
+                email: str,
+                organization_name: str,
+                first_name: str = "",
+                last_name: str = "",
+                plan_key: str | None = None,
+                start_date: date | None = None,
 ) -> ProvisioningResult:
-	"""Provision a tenant for a Google authenticated user without a password."""
-	
-	return provision_tenant_account(
-		username=email,
-		email=email,
-		password=None,
-		organization_name=organization_name,
-		first_name=first_name,
-		last_name=last_name,
-		plan_key=plan_key,
-		start_date=start_date,
-	)
+        """Provision a tenant for a Google authenticated user without a password."""
+
+        return provision_tenant_account(
+                username=email,
+                email=email,
+                password=None,
+                organization_name=organization_name,
+                first_name=first_name,
+                last_name=last_name,
+                plan_key=plan_key,
+                start_date=start_date,
+        )
+
+
+def finalize_invite_acceptance(*, invite: models.OrganizationInvite, user: models.User) -> models.OrganizationInvite:
+        """Attach the user to the invite's organization and mark it as accepted."""
+
+        if invite.accepted_at is not None:
+                raise ValueError("Invite already accepted")
+
+        if user.organization_id and user.organization_id != invite.organization_id:
+                raise ValueError("User belongs to a different organization")
+
+        if not user.organization_id:
+                user.organization = invite.organization
+                user.save(update_fields=["organization"])
+
+        if invite.role:
+                models.UserRole.objects.get_or_create(user=user, role=invite.role)
+
+        invite.accepted_by = user
+        invite.accepted_at = timezone.now()
+        invite.save(update_fields=["accepted_by", "accepted_at"])
+        return invite

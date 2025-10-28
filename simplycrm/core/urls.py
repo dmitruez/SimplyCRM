@@ -14,6 +14,7 @@ from simplycrm.core.views import (
     BillingOverviewView,
     ChangeSubscriptionPlanView,
     ExcelDataImportView,
+    InviteAcceptView,
 )
 
 
@@ -25,6 +26,11 @@ router.register(r"subscriptions", viewsets.SubscriptionViewSet)
 router.register(r"users", viewsets.UserViewSet)
 router.register(r"user-roles", viewsets.UserRoleViewSet)
 router.register(r"audit-logs", viewsets.AuditLogViewSet, basename="audit-log")
+router.register(
+    r"organization-invites",
+    viewsets.OrganizationInviteViewSet,
+    basename="organization-invite",
+)
 
 urlpatterns = [
     *router.urls,
@@ -37,4 +43,5 @@ urlpatterns = [
     path("billing/overview/", BillingOverviewView.as_view(), name="billing-overview"),
     path("billing/change-plan/", ChangeSubscriptionPlanView.as_view(), name="billing-change-plan"),
     path("data-import/", ExcelDataImportView.as_view(), name="data-import"),
+    path("invites/accept/", InviteAcceptView.as_view(), name="invite-accept"),
 ]

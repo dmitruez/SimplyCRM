@@ -15,7 +15,7 @@ export interface CoreUser {
   locale?: string;
   isActive: boolean;
   isStaff: boolean;
-  organization: OrganizationSummary;
+  organization?: OrganizationSummary;
 }
 
 export interface UserRoleRecord {
@@ -33,4 +33,16 @@ export interface AuditLogRecord {
   entity: string;
   metadata: Record<string, unknown>;
   createdAt: string;
+}
+
+export interface OrganizationInviteRecord {
+  id: number;
+  email?: string;
+  token: string;
+  role?: string;
+  createdAt: string;
+  expiresAt?: string;
+  acceptedAt?: string;
+  createdByName?: string;
+  isActive: boolean;
 }

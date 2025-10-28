@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -13,13 +13,22 @@ import { coreApi } from '../api/core';
 import { notificationBus } from '../components/notifications/notificationBus';
 import type { DashboardOverview } from '../types/dashboard';
 import type { SalesContact, PurchaseRecord, InvoiceRecord, PaymentRecord } from '../types/sales';
-import type { CoreUser, UserRoleRecord } from '../types/core';
+import type { CoreUser, OrganizationInviteRecord, UserRoleRecord } from '../types/core';
 import type { Product } from '../types/catalog';
 
 const THEME_STORAGE_KEY = 'simplycrm-dashboard-theme';
+const INVITES_QUERY_KEY = ['core', 'organization-invites'] as const;
 
 type ThemeMode = 'light' | 'dark';
-type SectionKey = 'overview' | 'roles' | 'audit' | 'orders' | 'payments' | 'analytics' | 'support';
+type SectionKey =
+  | 'overview'
+  | 'employees'
+  | 'roles'
+  | 'audit'
+  | 'orders'
+  | 'payments'
+  | 'analytics'
+  | 'support';
 type StatusTone = 'neutral' | 'warning' | 'success';
 
 type RoleCode = 'admin' | 'manager' | 'analyst' | 'marketer';
@@ -78,6 +87,7 @@ const CURRENCIES = ['USD', 'EUR', 'RUB'];
 
 const NAV_ITEMS: { id: SectionKey; label: string; description: string }[] = [
   { id: 'overview', label: 'Обзор', description: 'ключевые цифры' },
+  { id: 'employees', label: 'Работники', description: 'команда и приглашения' },
   { id: 'roles', label: 'Роли', description: 'права доступа' },
   { id: 'audit', label: 'Аудит', description: 'действия пользователей' },
   { id: 'orders', label: 'Заказы', description: 'воронка и статусы' },
@@ -121,6 +131,25 @@ const resolveContactName = (contact: SalesContact | undefined) => {
   return `Контакт #${contact.id}`;
 };
 
+const resolveRoleTitle = (role?: string) => {
+  if (!role) {
+    return 'Без роли';
+  }
+  const definition = ROLE_DEFINITIONS.find((item) => item.code === role);
+  return definition?.title ?? role;
+};
+
+const formatInviteDate = (value?: string) => {
+  if (!value) {
+    return 'Без ограничения';
+  }
+  try {
+    return new Date(value).toLocaleString('ru-RU');
+  } catch {
+    return value;
+  }
+};
+
 const mapOrderStatus = (order: PurchaseRecord) => {
   const status = order.status?.toLowerCase();
   return ORDER_STATUS_LABELS[status] ?? {
@@ -154,6 +183,11 @@ export const DashboardPage = () => {
   const { data: roles } = useQuery<UserRoleRecord[]>({
     queryKey: ['core', 'roles'],
     queryFn: coreApi.listUserRoles
+  });
+
+  const { data: invites, isLoading: invitesLoading } = useQuery<OrganizationInviteRecord[]>({
+    queryKey: INVITES_QUERY_KEY,
+    queryFn: coreApi.listOrganizationInvites
   });
 
   const { data: auditLogs } = useQuery({
@@ -207,6 +241,10 @@ export const DashboardPage = () => {
 
   const paymentForm = useForm<{ invoiceId: string; amount: number; provider: string; reference?: string }>({
     defaultValues: { invoiceId: '', amount: 0, provider: PAYMENT_PROVIDERS[0], reference: '' }
+  });
+
+  const inviteForm = useForm<{ email: string; role: RoleCode; validDays: number }>({
+    defaultValues: { email: '', role: 'manager', validDays: 14 }
   });
 
   const assignRoleMutation = useMutation({
@@ -338,6 +376,49 @@ export const DashboardPage = () => {
     }
   });
 
+  const createInviteMutation = useMutation({
+    mutationFn: coreApi.createOrganizationInvite,
+    onSuccess: (invite) => {
+      notificationBus.publish({
+        type: 'success',
+        title: 'Приглашение отправлено',
+        message: 'Ссылка готова к отправке сотруднику.'
+      });
+      inviteForm.reset({ email: '', role: (invite.role as RoleCode) ?? 'manager', validDays: 14 });
+      queryClient.setQueryData<OrganizationInviteRecord[] | undefined>(INVITES_QUERY_KEY, (current) =>
+        current ? [invite, ...current] : [invite]
+      );
+    },
+    onError: () => {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Приглашение не создано',
+        message: 'Проверьте адрес электронной почты и попробуйте снова.'
+      });
+    }
+  });
+
+  const deleteInviteMutation = useMutation({
+    mutationFn: coreApi.deleteOrganizationInvite,
+    onSuccess: (_, inviteId) => {
+      notificationBus.publish({
+        type: 'success',
+        title: 'Приглашение отозвано',
+        message: 'Ссылка больше не активна.'
+      });
+      queryClient.setQueryData<OrganizationInviteRecord[] | undefined>(INVITES_QUERY_KEY, (current) =>
+        current?.filter((invite) => invite.id !== inviteId)
+      );
+    },
+    onError: () => {
+      notificationBus.publish({
+        type: 'error',
+        title: 'Не удалось отозвать приглашение',
+        message: 'Повторите попытку или обновите страницу.'
+      });
+    }
+  });
+
   const userById = useMemo(() => {
     const map = new Map<number, CoreUser>();
     (users ?? []).forEach((user) => map.set(user.id, user));
@@ -357,6 +438,51 @@ export const DashboardPage = () => {
     });
     return grouped;
   }, [roles, userById]);
+
+  const sortedInvites = useMemo(() => {
+    const list = invites ?? [];
+    return {
+      active: list.filter((invite) => invite.isActive),
+      inactive: list.filter((invite) => !invite.isActive)
+    };
+  }, [invites]);
+
+  const buildInviteLink = useCallback((token: string) => {
+    if (typeof window === 'undefined') {
+      return `/invite/${token}`;
+    }
+    return `${window.location.origin}/invite/${token}`;
+  }, []);
+
+  const handleCopyInvite = useCallback(
+    async (token: string) => {
+      const link = buildInviteLink(token);
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(link);
+        } else {
+          throw new Error('Clipboard API unavailable');
+        }
+        notificationBus.publish({
+          type: 'success',
+          title: 'Ссылка скопирована',
+          message: 'Отправьте приглашение сотруднику.'
+        });
+      } catch {
+        if (typeof window !== 'undefined') {
+          window.prompt('Скопируйте ссылку вручную и поделитесь ею с коллегой:', link);
+        }
+        notificationBus.publish({
+          type: 'info',
+          title: 'Ссылка на приглашение',
+          message: 'Мы показали ссылку — скопируйте её и отправьте сотруднику.'
+        });
+      }
+    },
+    [buildInviteLink]
+  );
+
+  const isInviteActionPending = createInviteMutation.isPending || deleteInviteMutation.isPending;
 
   const productVariants = useMemo(() => {
     const variants: { id: number; name: string }[] = [];
@@ -523,6 +649,22 @@ export const DashboardPage = () => {
     });
   });
 
+  const onSubmitInvite = inviteForm.handleSubmit((payload) => {
+    const email = payload.email.trim();
+    const validDays = Number.isFinite(payload.validDays) ? payload.validDays : 0;
+    let expiresAt: string | undefined;
+    if (validDays > 0) {
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + validDays);
+      expiresAt = expiry.toISOString();
+    }
+    createInviteMutation.mutate({
+      email: email || undefined,
+      role: payload.role,
+      expiresAt
+    });
+  });
+
   return (
     <>
       <Helmet>
@@ -615,6 +757,144 @@ export const DashboardPage = () => {
                     </div>
                   ))
                 )}
+              </div>
+            </section>
+
+            <section id="employees" className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  <h3>Работники и приглашения</h3>
+                  <span>Следите за командой и делитесь ссылкой для быстрого доступа.</span>
+                </div>
+              </div>
+
+              <div className={styles.employeesGrid}>
+                <article className={styles.employeeCard}>
+                  <h4>Текущая команда</h4>
+                  <ul className={styles.employeeList}>
+                    {(users ?? []).map((user) => (
+                      <li key={user.id} className={styles.employeeListItem}>
+                        <div className={styles.employeeMeta}>
+                          <strong>{resolveUserName(user)}</strong>
+                          <span>{user.email}</span>
+                        </div>
+                        <span className={styles.employeeRole}>
+                          {resolveRoleTitle(roles?.find((role) => role.userId === user.id)?.role)}
+                        </span>
+                      </li>
+                    ))}
+                    {(users ?? []).length === 0 && (
+                      <li className={styles.emptyState}>Сотрудники пока не добавлены.</li>
+                    )}
+                  </ul>
+                </article>
+
+                <article className={styles.employeeCard}>
+                  <h4>Пригласить сотрудника</h4>
+                  <form onSubmit={onSubmitInvite} className={styles.formGrid}>
+                    <label className={styles.formField}>
+                      <span>Email сотрудника</span>
+                      <input
+                        type="email"
+                        placeholder="name@company.com"
+                        {...inviteForm.register('email')}
+                      />
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Роль после присоединения</span>
+                      <select {...inviteForm.register('role')}>
+                        {ROLE_DEFINITIONS.map((definition) => (
+                          <option key={definition.code} value={definition.code}>
+                            {definition.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.formField}>
+                      <span>Срок действия (дней)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={90}
+                        {...inviteForm.register('validDays', { valueAsNumber: true, min: 0, max: 90 })}
+                      />
+                      <span className={styles.formFieldHint}>0 — без ограничения по времени.</span>
+                    </label>
+                    <div className={styles.formActions}>
+                      <Button type="submit" disabled={createInviteMutation.isPending}>
+                        Отправить приглашение
+                      </Button>
+                    </div>
+                  </form>
+                </article>
+              </div>
+
+              <div className={styles.inviteList}>
+                <div className={styles.inviteListHeader}>
+                  <h4>Ссылки на приглашения</h4>
+                  <span className={styles.inviteHint}>
+                    Активных: {sortedInvites.active.length} · История: {sortedInvites.inactive.length}
+                  </span>
+                </div>
+                {invitesLoading ? <div className={styles.inviteCard}>Загружаем приглашения…</div> : null}
+                {sortedInvites.active.length === 0 && !invitesLoading ? (
+                  <div className={styles.emptyInvites}>Активных приглашений пока нет.</div>
+                ) : (
+                  sortedInvites.active.map((invite) => (
+                    <div key={invite.id} className={styles.inviteCard}>
+                      <header>
+                        <div>
+                          <strong>{invite.email ?? 'Ссылка без email'}</strong>
+                          <span className={styles.inviteStatus}>
+                            Роль: {resolveRoleTitle(invite.role)} • Действует до {formatInviteDate(invite.expiresAt)}
+                          </span>
+                        </div>
+                        <div className={styles.inviteActions}>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => handleCopyInvite(invite.token)}
+                            disabled={isInviteActionPending}
+                          >
+                            Скопировать
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="link"
+                            onClick={() => deleteInviteMutation.mutate(invite.id)}
+                            disabled={deleteInviteMutation.isPending}
+                          >
+                            Отозвать
+                          </Button>
+                        </div>
+                      </header>
+                      <div className={styles.inviteLink}>{buildInviteLink(invite.token)}</div>
+                      <div className={styles.inviteMeta}>
+                        Создано: {formatInviteDate(invite.createdAt)}
+                        {invite.createdByName ? ` • ${invite.createdByName}` : ''}
+                      </div>
+                    </div>
+                  ))
+                )}
+                {sortedInvites.inactive.length > 0 ? (
+                  <div className={styles.inviteHistory}>
+                    <h5>История приглашений</h5>
+                    <ul>
+                      {sortedInvites.inactive.map((invite) => (
+                        <li key={invite.id}>
+                          <div>
+                            <strong>{invite.email ?? 'Без email'}</strong>
+                            <span className={styles.inviteStatus}>
+                              {invite.acceptedAt
+                                ? `Принято ${formatInviteDate(invite.acceptedAt)}`
+                                : 'Приглашение отозвано'}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             </section>
 

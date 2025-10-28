@@ -72,15 +72,23 @@ export const authApi = {
         return normalizeProfile(data);
     },
     async register(payload: RegistrationFormValues): Promise<AuthSuccessPayload> {
-        const {data} = await apiClient.post<AuthSuccessResponse>('/auth/register/', {
+        const body: Record<string, unknown> = {
             username: payload.username,
             email: payload.email,
             password: payload.password,
             first_name: payload.firstName,
-            last_name: payload.lastName,
-            organization_name: payload.organizationName,
-            plan_key: payload.planKey
-        });
+            last_name: payload.lastName
+        };
+        if (!payload.registerWithoutCompany && payload.organizationName?.trim()) {
+            body.organization_name = payload.organizationName.trim();
+        }
+        if (payload.planKey) {
+            body.plan_key = payload.planKey;
+        }
+        if (payload.inviteToken?.trim()) {
+            body.invite_token = payload.inviteToken.trim();
+        }
+        const {data} = await apiClient.post<AuthSuccessResponse>('/auth/register/', body);
         setAccessToken(data.access);
         return {...data, profile: normalizeProfile(data.profile)};
     },

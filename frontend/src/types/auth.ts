@@ -49,6 +49,8 @@ export interface RegistrationFormValues {
     confirmPassword: string;
     firstName: string;
     lastName: string;
-    organizationName: string;
+    organizationName?: string;
+    registerWithoutCompany?: boolean;
+    inviteToken?: string;
     planKey?: string;
 }
