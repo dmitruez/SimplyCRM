@@ -1,19 +1,35 @@
 """Multi-tenant regression tests for core API endpoints."""
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.urls import reverse
+from django.test import override_settings
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from simplycrm.core import models, tenant
 
 
+@override_settings(
+    DDOS_SHIELD={"ENABLED": False},
+    REST_FRAMEWORK={
+        **settings.REST_FRAMEWORK,
+        "DEFAULT_THROTTLE_RATES": {
+            **settings.REST_FRAMEWORK.get("DEFAULT_THROTTLE_RATES", {}),
+            "user": "1000/min",
+            "anon": "1000/min",
+        },
+    },
+)
 class UserViewSetIsolationTests(APITestCase):
     """Ensure user listings never leak members from other organizations."""
 
     def setUp(self) -> None:
         super().setUp()
+        cache.clear()
         User = get_user_model()
         self.superuser = User.objects.create_superuser(
             username="admin",
@@ -75,7 +91,6 @@ class UserViewSetIsolationTests(APITestCase):
     def test_user_role_listing_is_scoped_to_active_organization(self):
         self.client.force_authenticate(self.owner)
         response = self.client.get(self.role_list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         user_ids = {entry["user"] for entry in response.data.get("results", [])}
         self.assertEqual(user_ids, {self.owner.id, self.member.id})
@@ -91,6 +106,17 @@ class UserViewSetIsolationTests(APITestCase):
         response = self.client.get(
             self.role_list_url,
             HTTP_X_ORGANIZATION_ID=str(self.organization.id),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user_ids = {entry["user"] for entry in response.data.get("results", [])}
+        self.assertEqual(user_ids, {self.owner.id, self.member.id})
+
+    def test_superuser_can_impersonate_via_query_parameter(self):
+        self.client.force_authenticate(self.superuser)
+        response = self.client.get(
+            self.role_list_url,
+            data={"organization_id": self.organization.id},
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -145,7 +171,18 @@ class UserViewSetIsolationTests(APITestCase):
     def test_user_role_listing_never_includes_global_admin(self):
         self.client.force_authenticate(self.owner)
         response = self.client.get(self.role_list_url)
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         org_ids = {entry["user"] for entry in response.data.get("results", [])}
         self.assertNotIn(self.superuser.id, org_ids)
+
+    def test_token_authenticated_user_scoped_to_their_organization(self):
+        token = Token.objects.create(user=self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+
+        response = self.client.get(self.role_list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user_ids = {entry["user"] for entry in response.data.get("results", [])}
+        self.assertEqual(user_ids, {self.owner.id, self.member.id})
+
+        self.client.credentials()

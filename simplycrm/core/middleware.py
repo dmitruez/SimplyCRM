@@ -7,6 +7,8 @@ from typing import Callable, Tuple
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 from simplycrm.core import models, tenant
 
@@ -16,16 +18,13 @@ class DDoSShieldMiddleware:
 
         def __init__(self, get_response: Callable):
                 self.get_response = get_response
-                config = getattr(settings, "DDOS_SHIELD", {})
-                self.window_seconds = int(config.get("WINDOW_SECONDS", 10))
-                self.burst_limit = int(config.get("BURST_LIMIT", 60))
-                self.penalty_seconds = int(config.get("PENALTY_SECONDS", 60))
-                self.signature_ttl = int(config.get("SIGNATURE_TTL_SECONDS", 15))
-                prefixes = config.get("PROTECTED_PATH_PREFIXES", ["/api/"])
-                self.protected_prefixes: tuple[str, ...] = tuple(prefixes)
 
         def __call__(self, request):
-                if not self._is_protected_path(request.path):
+                config = self._load_config()
+                if not config["enabled"]:
+                        return self.get_response(request)
+
+                if not self._is_protected_path(request.path, config["protected_prefixes"]):
                         return self.get_response(request)
 
                 ident = self._client_ident(request)
@@ -36,7 +35,7 @@ class DDoSShieldMiddleware:
                         retry_after = int(blocked_until - now)
                         return self._too_many_requests(retry_after)
 
-                if self._is_duplicate_request(request):
+                if self._is_duplicate_request(request, config["signature_ttl"]):
                         return JsonResponse(
                                 {"detail": "Duplicate request detected. Please wait before retrying."},
                                 status=409,
@@ -50,23 +49,36 @@ class DDoSShieldMiddleware:
                                 count += 1
                         else:
                                 count = 1
-                                expires_at = now + self.window_seconds
+                                expires_at = now + config["window_seconds"]
                 else:
                         count = 1
-                        expires_at = now + self.window_seconds
+                        expires_at = now + config["window_seconds"]
 
-                cache.set(bucket_key, (count, expires_at), timeout=self.window_seconds)
+                cache.set(bucket_key, (count, expires_at), timeout=config["window_seconds"])
 
-                if count > self.burst_limit:
-                        penalty_until = now + self.penalty_seconds
-                        cache.set(block_key, penalty_until, timeout=self.penalty_seconds)
-                        return self._too_many_requests(self.penalty_seconds)
+                if count > config["burst_limit"]:
+                        penalty_until = now + config["penalty_seconds"]
+                        cache.set(block_key, penalty_until, timeout=config["penalty_seconds"])
+                        return self._too_many_requests(config["penalty_seconds"])
 
                 response = self.get_response(request)
                 return response
 
-        def _is_protected_path(self, path: str) -> bool:
-                return path.startswith(self.protected_prefixes)
+        @staticmethod
+        def _load_config() -> dict:
+                raw = getattr(settings, "DDOS_SHIELD", {})
+                return {
+                        "enabled": bool(raw.get("ENABLED", True)),
+                        "window_seconds": int(raw.get("WINDOW_SECONDS", 10)),
+                        "burst_limit": int(raw.get("BURST_LIMIT", 60)),
+                        "penalty_seconds": int(raw.get("PENALTY_SECONDS", 60)),
+                        "signature_ttl": int(raw.get("SIGNATURE_TTL_SECONDS", 15)),
+                        "protected_prefixes": tuple(raw.get("PROTECTED_PATH_PREFIXES", ["/api/"])),
+                }
+
+        @staticmethod
+        def _is_protected_path(path: str, prefixes: tuple[str, ...]) -> bool:
+                return path.startswith(prefixes)
 
         def _client_ident(self, request) -> str:
                 forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
@@ -74,14 +86,14 @@ class DDoSShieldMiddleware:
                         return forwarded.split(",")[0].strip()
                 return request.META.get("REMOTE_ADDR", "unknown")
 
-        def _is_duplicate_request(self, request) -> bool:
+        def _is_duplicate_request(self, request, signature_ttl: int) -> bool:
                 if request.method in {"GET", "HEAD", "OPTIONS", "TRACE"}:
                         return False
                 signature = request.headers.get("X-Request-Signature")
                 if not signature:
                         return False
                 signature_key = f"ddos:sig:{signature}"
-                added = cache.add(signature_key, True, timeout=self.signature_ttl)
+                added = cache.add(signature_key, True, timeout=signature_ttl)
                 return not added
 
         @staticmethod
@@ -96,6 +108,35 @@ class DDoSShieldMiddleware:
                 )
                 response["Retry-After"] = str(retry_after)
                 return response
+
+
+class TokenAuthenticationMiddleware:
+        """Authenticate DRF token users before organization scoping runs."""
+
+        def __init__(self, get_response: Callable):
+                self.get_response = get_response
+                self.authenticator = TokenAuthentication()
+
+        def __call__(self, request):
+                user = getattr(request, "user", None)
+                if user is not None and getattr(user, "is_authenticated", False):
+                        return self.get_response(request)
+
+                auth_header = request.META.get("HTTP_AUTHORIZATION", "") or ""
+                if not auth_header.lower().startswith("token "):
+                        return self.get_response(request)
+
+                try:
+                        auth_result = self.authenticator.authenticate(request)
+                except AuthenticationFailed:
+                        auth_result = None
+
+                if auth_result is not None:
+                        user, token = auth_result
+                        request.user = user
+                        request.auth = token
+
+                return self.get_response(request)
 
 
 class OrganizationContextMiddleware:
