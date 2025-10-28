@@ -34,10 +34,6 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):  # type: ignore[override]
         qs = super().get_queryset()
-        user = self.request.user
-        impersonated = getattr(self.request, "impersonated_organization", None)
-        if user.is_superuser and not impersonated:
-            return qs
         organization = tenant.get_request_organization(self.request)
         if organization:
             return qs.filter(organization=organization)
@@ -57,10 +53,6 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):  # type: ignore[override]
         qs = super().get_queryset()
-        user = self.request.user
-        impersonated = getattr(self.request, "impersonated_organization", None)
-        if user.is_superuser and not impersonated:
-            return qs
         organization = tenant.get_request_organization(self.request)
         if organization:
             return qs.filter(organization=organization)
@@ -88,20 +80,50 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class UserRoleViewSet(viewsets.ModelViewSet):
-    queryset = models.UserRole.objects.select_related("user", "user__organization").all()
+    queryset = models.UserRole.all_objects.select_related("user", "user__organization").all()
     serializer_class = serializers.UserRoleSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):  # type: ignore[override]
-        qs = super().get_queryset()
-        user = self.request.user
-        impersonated = getattr(self.request, "impersonated_organization", None)
-        if user.is_superuser and not impersonated:
-            return qs
         organization = tenant.get_request_organization(self.request)
-        if organization:
-            return qs.filter(user__organization=organization)
-        return qs.none()
+        if not organization:
+            return models.UserRole.objects.none()
+
+        queryset = (
+            super()
+            .get_queryset()
+            .filter(user__organization=organization)
+            .order_by("-assigned_at")
+        )
+        return queryset
+
+    def perform_create(self, serializer):  # type: ignore[override]
+        organization = tenant.get_request_organization(self.request)
+        if organization is None:
+            raise ValidationError("Активная организация не выбрана.")
+
+        user = serializer.validated_data.get("user")
+        if user.organization_id != organization.id:
+            raise ValidationError("Пользователь принадлежит другой организации.")
+
+        serializer.save()
+
+    def perform_update(self, serializer):  # type: ignore[override]
+        organization = tenant.get_request_organization(self.request)
+        if organization is None:
+            raise ValidationError("Активная организация не выбрана.")
+
+        user = serializer.validated_data.get("user") or serializer.instance.user
+        if user.organization_id != organization.id:
+            raise ValidationError("Пользователь принадлежит другой организации.")
+
+        serializer.save()
+
+    def perform_destroy(self, instance):  # type: ignore[override]
+        organization = tenant.get_request_organization(self.request)
+        if organization is None or instance.user.organization_id != organization.id:
+            raise ValidationError("Активная организация не выбрана или не совпадает.")
+        super().perform_destroy(instance)
 
 
 class AuditLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -112,10 +134,6 @@ class AuditLogViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     def get_queryset(self):  # type: ignore[override]
         qs = super().get_queryset()
-        user = self.request.user
-        impersonated = getattr(self.request, "impersonated_organization", None)
-        if user.is_superuser and not impersonated:
-            return qs
         organization = tenant.get_request_organization(self.request)
         if organization:
             return qs.filter(organization=organization)
