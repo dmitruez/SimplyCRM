@@ -21,6 +21,28 @@ ORGANIZATION_ROLE_CHOICES = [
 ]
 
 
+class ActiveOrganizationManager(models.Manager):
+        """Filter querysets to the active organization context when available."""
+
+        def __init__(self, *args, organization_field: str = "organization", **kwargs):
+                super().__init__(*args, **kwargs)
+                self.organization_field = organization_field
+
+        def get_queryset(self):  # type: ignore[override]
+                queryset = super().get_queryset()
+                from simplycrm.core import tenant
+
+                organization = tenant.get_active_organization()
+                if organization is None:
+                        return queryset
+                return queryset.filter(**{self.organization_field: organization})
+
+        def all_organizations(self):
+                """Return an unrestricted queryset that ignores tenant scoping."""
+
+                return super().get_queryset()
+
+
 def _generate_invite_token() -> str:
         """Generate a cryptographically secure invite token."""
 
@@ -287,6 +309,9 @@ class UserRole(models.Model):
         user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles")
         role = models.CharField(max_length=32, choices=ROLE_CHOICES)
         assigned_at = models.DateTimeField(auto_now_add=True)
+
+        objects = ActiveOrganizationManager(organization_field="user__organization")
+        all_objects = models.Manager()
 
 
         class Meta:
