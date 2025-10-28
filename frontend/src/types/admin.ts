@@ -41,11 +41,95 @@ export interface AdminUserRecord {
   seatsUsed: number;
   seatsTotal: number;
   monthlySpend: number;
+  arr: number;
   healthScore: number;
   usageTrend: number;
   lastActive: string;
   avatarColor: string;
   tags: string[];
+  accountOwner: string;
+  segment: string;
+  lifecycleStage: 'onboarding' | 'active' | 'expansion' | 'risk';
+  renewalDate: string;
+  lastInteraction: string;
+  timezone: string;
+  region: string;
+  healthStatus: 'healthy' | 'attention' | 'risk';
+  healthReason?: string;
+  openTickets: number;
+  csatScore: number;
+  adoptionScore: number;
+  topProducts: string[];
+}
+
+export interface AdminTeamMember {
+  id: number;
+  name: string;
+  role: string;
+  avatarColor: string;
+  focus: string;
+  status: 'available' | 'busy' | 'offline';
+  email: string;
+}
+
+export interface AdminTask {
+  id: number;
+  title: string;
+  companyId: number;
+  company: string;
+  dueDate: string;
+  createdAt: string;
+  status: 'pending' | 'in_progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
+  assigneeId: number;
+  assigneeName: string;
+  relatedPlan?: string;
+}
+
+export interface AdminSignal {
+  id: number;
+  companyId: number;
+  company: string;
+  severity: 'info' | 'warning' | 'danger';
+  message: string;
+  metric: string;
+  recommendation: string;
+  occurredAt: string;
+}
+
+export interface AdminPipelineDeal {
+  id: number;
+  companyId: number;
+  company: string;
+  plan: string;
+  amount: number;
+  stageId: AdminPipelineStageId;
+  probability: number;
+  owner: string;
+  updatedAt: string;
+  nextStep: string;
+  health: 'positive' | 'neutral' | 'risk';
+}
+
+export type AdminPipelineStageId =
+  | 'qualification'
+  | 'discovery'
+  | 'proposal'
+  | 'negotiation'
+  | 'closed';
+
+export interface AdminPipelineStage {
+  id: AdminPipelineStageId;
+  name: string;
+  description: string;
+  probability: number;
+  order: number;
+}
+
+export interface AdminPipelineLane extends AdminPipelineStage {
+  deals: AdminPipelineDeal[];
+  totalAmount: number;
+  avgAgeDays: number;
 }
 
 export interface AdminPlanOption {
