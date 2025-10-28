@@ -1,5 +1,14 @@
 import { apiClient } from './apiClient';
-import { Deal, DealNote, PurchaseRecord, InvoiceRecord, PaymentRecord, ShipmentRecord } from '../types/sales';
+import {
+    Deal,
+    DealNote,
+    PurchaseRecord,
+    InvoiceRecord,
+    PaymentRecord,
+    ShipmentRecord,
+    SalesContact,
+    OrderStatusUpdatePayload
+} from '../types/sales';
 
 interface PaginatedResponse<T> {
     results: T[];
@@ -32,6 +41,23 @@ interface OrderDto {
     total_amount: number | string;
     contact_name: string | null;
     ordered_at: string | null;
+}
+
+interface ContactDto {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string | null;
+    phone_number: string | null;
+}
+
+interface OrderLineDto {
+    id: number;
+    order: number;
+    product_variant: number;
+    quantity: number;
+    unit_price: number | string;
+    discount_amount: number | string;
 }
 
 interface InvoiceDto {
@@ -87,9 +113,9 @@ export const salesApi = {
         }));
     },
 
-    async listPurchases(): Promise<PurchaseRecord[]> {
+    async listPurchases(params: Record<string, string | number | undefined> = {}): Promise<PurchaseRecord[]> {
         const {data} = await apiClient.get<PaginatedResponse<OrderDto>>('/sales/orders/', {
-            params: {page_size: 20, ordering: '-ordered_at'}
+            params: {page_size: 20, ordering: '-ordered_at', ...params}
         });
         return (data.results ?? []).map((order) => ({
             id: order.id,
@@ -99,6 +125,42 @@ export const salesApi = {
             contactName: order.contact_name ?? undefined,
             orderedAt: order.ordered_at
         }));
+    },
+
+    async listContacts(): Promise<SalesContact[]> {
+        const { data } = await apiClient.get<PaginatedResponse<ContactDto>>('/sales/contacts/', {
+            params: { page_size: 100, ordering: 'first_name' }
+        });
+        return (data.results ?? []).map((contact) => ({
+            id: contact.id,
+            firstName: contact.first_name,
+            lastName: contact.last_name,
+            email: contact.email ?? undefined,
+            phoneNumber: contact.phone_number ?? undefined
+        }));
+    },
+
+    async createContact(payload: { firstName: string; lastName?: string; email?: string; phoneNumber?: string }): Promise<SalesContact> {
+        const body: Record<string, unknown> = {
+            first_name: payload.firstName
+        };
+        if (payload.lastName) {
+            body.last_name = payload.lastName;
+        }
+        if (payload.email) {
+            body.email = payload.email;
+        }
+        if (payload.phoneNumber) {
+            body.phone_number = payload.phoneNumber;
+        }
+        const { data } = await apiClient.post<ContactDto>('/sales/contacts/', body);
+        return {
+            id: data.id,
+            firstName: data.first_name,
+            lastName: data.last_name,
+            email: data.email ?? undefined,
+            phoneNumber: data.phone_number ?? undefined
+        };
     },
 
     async listNotes(): Promise<DealNote[]> {
@@ -175,5 +237,101 @@ export const salesApi = {
             shippedAt: shipment.shipped_at,
             deliveredAt: shipment.delivered_at
         }));
+    },
+
+    async createOrder(payload: { contactId?: number | null; opportunityId?: number | null; status?: string; currency?: string }): Promise<PurchaseRecord> {
+        const body: Record<string, unknown> = {};
+        if (typeof payload.contactId === 'number') {
+            body.contact = payload.contactId;
+        }
+        if (typeof payload.opportunityId === 'number') {
+            body.opportunity = payload.opportunityId;
+        }
+        if (payload.status) {
+            body.status = payload.status;
+        }
+        if (payload.currency) {
+            body.currency = payload.currency;
+        }
+        const { data } = await apiClient.post<OrderDto>('/sales/orders/', body);
+        return {
+            id: data.id,
+            status: data.status,
+            totalAmount: toNumber(data.total_amount),
+            currency: data.currency,
+            contactName: data.contact_name ?? undefined,
+            orderedAt: data.ordered_at
+        };
+    },
+
+    async updateOrder(orderId: number, payload: OrderStatusUpdatePayload): Promise<PurchaseRecord> {
+        const { data } = await apiClient.patch<OrderDto>(`/sales/orders/${orderId}/`, {
+            status: payload.status,
+            fulfilled_at: payload.fulfilledAt ?? undefined
+        });
+        return {
+            id: data.id,
+            status: data.status,
+            totalAmount: toNumber(data.total_amount),
+            currency: data.currency,
+            contactName: data.contact_name ?? undefined,
+            orderedAt: data.ordered_at
+        };
+    },
+
+    async createOrderLine(payload: { orderId: number; variantId: number; quantity: number; unitPrice: number; discountAmount?: number }): Promise<OrderLineDto> {
+        const body: Record<string, unknown> = {
+            order: payload.orderId,
+            product_variant: payload.variantId,
+            quantity: payload.quantity,
+            unit_price: payload.unitPrice
+        };
+        if (typeof payload.discountAmount === 'number') {
+            body.discount_amount = payload.discountAmount;
+        }
+        const { data } = await apiClient.post<OrderLineDto>('/sales/order-lines/', body);
+        return data;
+    },
+
+    async createInvoice(payload: { orderId: number; totalAmount: number; dueDate?: string | null; status?: string }): Promise<InvoiceRecord> {
+        const body: Record<string, unknown> = {
+            order: payload.orderId,
+            total_amount: payload.totalAmount
+        };
+        if (payload.dueDate) {
+            body.due_date = payload.dueDate;
+        }
+        if (payload.status) {
+            body.status = payload.status;
+        }
+        const { data } = await apiClient.post<InvoiceDto>('/sales/invoices/', body);
+        return {
+            id: data.id,
+            orderId: data.order,
+            status: data.status,
+            totalAmount: toNumber(data.total_amount),
+            issuedAt: data.issued_at,
+            dueDate: data.due_date
+        };
+    },
+
+    async createPayment(payload: { invoiceId: number; amount: number; provider: string; transactionReference?: string | null }): Promise<PaymentRecord> {
+        const body: Record<string, unknown> = {
+            invoice: payload.invoiceId,
+            amount: payload.amount,
+            provider: payload.provider
+        };
+        if (payload.transactionReference) {
+            body.transaction_reference = payload.transactionReference;
+        }
+        const { data } = await apiClient.post<PaymentDto>('/sales/payments/', body);
+        return {
+            id: data.id,
+            invoiceId: data.invoice,
+            amount: toNumber(data.amount),
+            provider: data.provider,
+            processedAt: data.processed_at,
+            transactionReference: data.transaction_reference ?? undefined
+        };
     }
 };

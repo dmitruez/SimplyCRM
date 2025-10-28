@@ -54,3 +54,16 @@ export interface ShipmentRecord {
     shippedAt: string | null;
     deliveredAt: string | null;
 }
+
+export interface SalesContact {
+    id: number;
+    firstName: string;
+    lastName?: string;
+    email?: string;
+    phoneNumber?: string;
+}
+
+export interface OrderStatusUpdatePayload {
+    status: string;
+    fulfilledAt?: string | null;
+}
