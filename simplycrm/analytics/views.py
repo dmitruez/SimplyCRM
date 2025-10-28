@@ -9,11 +9,12 @@ from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 from django.views.generic import TemplateView
-from rest_framework import permissions
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from simplycrm.analytics import services
+from simplycrm.core import tenant
 from simplycrm.core.permissions import HasFeaturePermission
 from simplycrm.sales import models as sales_models
 
@@ -25,7 +26,12 @@ class AnalyticsOverviewView(APIView):
         feature_code = "analytics.standard"
 
         def get(self, request, *args, **kwargs):  # type: ignore[override]
-                organization = request.user.organization
+                organization = tenant.get_request_organization(request)
+                if organization is None:
+                        return Response(
+                                {"detail": "Активная организация не выбрана."},
+                                status=status.HTTP_400_BAD_REQUEST,
+                        )
                 organization_id = organization.id
 
                 orders_qs = sales_models.Order.objects.filter(
@@ -110,9 +116,10 @@ class AnalyticsDashboardView(LoginRequiredMixin, TemplateView):
         def get_context_data(self, **kwargs):  # type: ignore[override]
                 context = super().get_context_data(**kwargs)
                 user = self.request.user
+                active_org = tenant.get_active_organization(user.organization)
                 context.update(
                         {
-                                "organization": user.organization,
+                                "organization": active_org or user.organization,
                                 "username": user.get_full_name() or user.username,
                                 "feature_codes": sorted(user.feature_codes()),
                         }

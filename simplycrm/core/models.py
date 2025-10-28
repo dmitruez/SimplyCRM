@@ -188,10 +188,18 @@ class User(AbstractUser):
 	objects = OrganizationAwareUserManager()
 	
 	def feature_codes(self) -> set[str]:
-		active_subscription = self.organization.current_subscription()
+		"""Return feature flags enabled for the active organization context."""
+
 		codes: set[str] = set()
-		if active_subscription:
-			codes.update(active_subscription.plan.feature_flags.values_list("code", flat=True))
+		from simplycrm.core import tenant  # Local import to avoid circular dependency.
+
+		organization = tenant.get_active_organization(self.organization)
+		if organization:
+			active_subscription = organization.current_subscription()
+			if active_subscription:
+				codes.update(
+					active_subscription.plan.feature_flags.values_list("code", flat=True)
+				)
 		if self.is_staff or self.is_superuser:
 			codes.add("admin.panel")
 		return codes
