@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import date
+import secrets
 from typing import Iterable
 
 from django.conf import settings
@@ -9,6 +10,71 @@ from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
+
+
+ORGANIZATION_ROLE_CHOICES = [
+        ("admin", "Admin"),
+        ("manager", "Manager"),
+        ("analyst", "Analyst"),
+        ("marketer", "Marketer"),
+]
+
+
+def _generate_invite_token() -> str:
+        """Generate a cryptographically secure invite token."""
+
+        # ``token_urlsafe`` may generate strings longer than requested, but the
+        # model reserves 64 characters so trimming keeps the token within bounds
+        # while retaining enough entropy for security.
+        return secrets.token_urlsafe(48)[:64]
+
+
+class OrganizationInvite(models.Model):
+        """Invitation for a prospective user to join an organization."""
+
+        organization = models.ForeignKey(
+                "Organization",
+                on_delete=models.CASCADE,
+                related_name="invites",
+        )
+        email = models.EmailField(blank=True)
+        token = models.CharField(max_length=64, unique=True, default=_generate_invite_token)
+        role = models.CharField(max_length=32, blank=True, choices=ORGANIZATION_ROLE_CHOICES)
+        created_by = models.ForeignKey(
+                settings.AUTH_USER_MODEL,
+                on_delete=models.SET_NULL,
+                related_name="created_invites",
+                null=True,
+                blank=True,
+        )
+        accepted_by = models.ForeignKey(
+                settings.AUTH_USER_MODEL,
+                on_delete=models.SET_NULL,
+                related_name="accepted_invites",
+                null=True,
+                blank=True,
+        )
+        created_at = models.DateTimeField(auto_now_add=True)
+        expires_at = models.DateTimeField(null=True, blank=True)
+        accepted_at = models.DateTimeField(null=True, blank=True)
+
+        class Meta:
+                ordering = ["-created_at"]
+
+        def __str__(self) -> str:  # pragma: no cover - repr helper
+                recipient = self.email or "link"
+                return f"Invite {recipient} → {self.organization}"
+
+        @property
+        def is_active(self) -> bool:
+                """Return whether the invite can still be accepted."""
+
+                if self.accepted_at:
+                        return False
+                if self.expires_at and timezone.now() >= self.expires_at:
+                        return False
+                return True
 
 
 class Organization(models.Model):
@@ -209,31 +275,26 @@ class User(AbstractUser):
 
 
 class UserRole(models.Model):
-	"""Role-based access control for organization members."""
-	
-	ADMIN = "admin"
-	MANAGER = "manager"
-	ANALYST = "analyst"
-	MARKETER = "marketer"
-	
-	ROLE_CHOICES = [
-		(ADMIN, "Admin"),
-		(MANAGER, "Manager"),
-		(ANALYST, "Analyst"),
-		(MARKETER, "Marketer"),
-	]
-	
-	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles")
-	role = models.CharField(max_length=32, choices=ROLE_CHOICES)
-	assigned_at = models.DateTimeField(auto_now_add=True)
-	
-	
-	class Meta:
-		unique_together = ("user", "role")
-	
-	
-	def __str__(self) -> str:  # pragma: no cover
-		return f"{self.user} → {self.role}"
+        """Role-based access control for organization members."""
+
+        ADMIN = "admin"
+        MANAGER = "manager"
+        ANALYST = "analyst"
+        MARKETER = "marketer"
+
+        ROLE_CHOICES = ORGANIZATION_ROLE_CHOICES
+
+        user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="roles")
+        role = models.CharField(max_length=32, choices=ROLE_CHOICES)
+        assigned_at = models.DateTimeField(auto_now_add=True)
+
+
+        class Meta:
+                unique_together = ("user", "role")
+
+
+        def __str__(self) -> str:  # pragma: no cover
+                return f"{self.user} → {self.role}"
 
 
 class AuditLog(models.Model):
