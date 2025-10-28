@@ -48,6 +48,13 @@ def get_request_organization(request) -> Optional[models.Organization]:
     header_org = _resolve_header_organization(request)
     if header_org and (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
         return header_org
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        query_org = _resolve_query_organization(request)
+        if query_org is not None:
+            return query_org
+        session_org = _resolve_session_organization(request)
+        if session_org is not None:
+            return session_org
     return getattr(user, "organization", None)
 
 
@@ -79,3 +86,39 @@ def _resolve_header_organization(request) -> Optional[models.Organization]:
         except models.Organization.DoesNotExist:
             return None
     return None
+
+
+def _resolve_query_organization(request) -> Optional[models.Organization]:
+    params = getattr(request, "query_params", None)
+    if params is None and hasattr(request, "GET"):
+        params = request.GET
+    if not params:
+        return None
+
+    raw_id = params.get("organization_id")
+    if raw_id not in (None, ""):
+        try:
+            return models.Organization.objects.get(pk=int(raw_id))
+        except (ValueError, TypeError, models.Organization.DoesNotExist):
+            return None
+
+    slug_value = params.get("organization_slug") if hasattr(params, "get") else None
+    if slug_value:
+        try:
+            return models.Organization.objects.get(slug=slug_value)
+        except models.Organization.DoesNotExist:
+            return None
+    return None
+
+
+def _resolve_session_organization(request) -> Optional[models.Organization]:
+    session = getattr(request, "session", None)
+    if not session:
+        return None
+    raw_id = session.get("active_organization_id")
+    if raw_id in (None, ""):
+        return None
+    try:
+        return models.Organization.objects.get(pk=int(raw_id))
+    except (ValueError, TypeError, models.Organization.DoesNotExist):
+        return None
